@@ -5,7 +5,8 @@ Run:
 sudo ./install-ict.sh
 
 It will:
-* Add an user "ict".
+* Install required dependencies
+* Add an user "ict"
 * Download and compile the CfB´s ICT code in /home/ict/Ict
 * Generate a run script
 * Generate a systemd service
