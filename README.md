@@ -4,7 +4,7 @@ Scripts for installing IOTA ICT on Debian or Redhat based linux.
 Run on Debian based distros:
 `sudo ./install-ict_debian.sh`
 
-Run on Debian based distros:
+Run on Redhat based distros:
 `sudo ./install-ict_redhat.sh`
 
 
