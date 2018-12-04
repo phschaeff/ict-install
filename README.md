@@ -1,11 +1,15 @@
 # ict-install
-Scripts for installing IOTA ICT on Debian based linux.
+Scripts for installing IOTA ICT on Debian or Redhat based linux.
 
-Run:
-sudo ./install-ict.sh
+Run on Debian based distros:
+`sudo ./install-ict_debian.sh`
+
+Run on Debian based distros:
+`sudo ./install-ict_redhat.sh`
+
 
 It will:
-* Install required dependencies
+* Install required dependencies (Oracle Java8 JDK) 
 * Add an user "ict"
 * Download and compile the CfB´s ICT code in /home/ict/Ict
 * Generate a run script
@@ -21,6 +25,7 @@ Tested on:
 * Debian 9
 * Raspbian 9
 * OpenHabianPi
+* Amazon Linux release 2 (Karoo)
 
 
 
