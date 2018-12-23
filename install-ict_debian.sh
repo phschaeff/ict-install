@@ -49,7 +49,7 @@ if [ "$1" = "RELEASE" ]; then
 	if [ ! -f ict/ict-${VERSION}.jar ]; then
 			mkdir ict
 			cd ict
-			curl -O https://github.com/iotaledger/ict/releases/download/${VERSION}/ict-${VERSION}.jar
+			wget https://github.com/iotaledger/ict/releases/download/${VERSION}/ict-${VERSION}.jar
 	fi
 fi
 
