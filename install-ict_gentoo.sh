@@ -13,9 +13,7 @@ if [ -z "$1" ] || [ "$1" != "BUILD" -a "$1" != "RELEASE" ] ; then
     exit
 fi
 
-apt-get update
-apt-get upgrade -y
-apt-get install curl -y --install-recommends
+emerge -u curl
 VERSION=`curl --silent "https://api.github.com/repos/${GITREPO}/releases" | grep '"tag_name":' |head -1 | sed -E 's/.*"([^"]+)".*/\1/'`
 
 useradd -d ${ICTHOME} -m -s /bin/bash ict
@@ -23,16 +21,15 @@ mkdir -p ${ICTHOME}/${ICTDIR}
 cd ${ICTHOME}/${ICTDIR}
 
 if [ "$1" = "BUILD" ]; then
-	apt-get install git gnupg dirmngr gradle -y --install-recommends
-	grep "^deb .*webupd8team" /etc/apt/sources.list || echo "deb http://ppa.launchpad.net/webupd8team/java/ubuntu trusty main" >> /etc/apt/sources.list
-	grep "^deb-src .*webupd8team" /etc/apt/sources.list || echo "deb-src http://ppa.launchpad.net/webupd8team/java/ubuntu precise main" >> /etc/apt/sources.list
-	apt-key adv --keyserver keyserver.ubuntu.com --recv-keys C2518248EEA14886
-	apt-key adv --keyserver keyserver.ubuntu.com --recv-keys EEA14886
-	apt-get update
-	apt-get upgrade -y
-	echo debconf shared/accepted-oracle-license-v1-1 select true | debconf-set-selections
-	echo debconf shared/accepted-oracle-license-v1-1 seen true | debconf-set-selections
-	apt-get install oracle-java8-installer oracle-java8-set-default -y --allow-unauthenticated
+	emerge -u git wget
+	cd /tmp
+	wget https://raw.githubusercontent.com/metalcated/scripts/master/install_java.sh -O -  | sed -e 's/^JAVA_TYPE="jre"/JAVA_TYPE="jdk"/' | sh
+	gradle_version=2.10
+	wget -c http://services.gradle.org/distributions/gradle-${gradle_version}-all.zip
+	unzip  gradle-${gradle_version}-all.zip -d /opt
+	ln -s /opt/gradle-${gradle_version} /opt/gradle
+	printf "export GRADLE_HOME=/opt/gradle\nexport PATH=\$PATH:\$GRADLE_HOME/bin\n" > /etc/profile.d/gradle.sh
+	source /etc/profile.d/gradle.sh
 
 	if [ -d ${ICTHOME}/${ICTDIR}/ict/.git ]; then
 		cd ${ICTHOME}/${ICTDIR}/ict
@@ -86,25 +83,41 @@ fi
 
 chown -R ict ${ICTHOME}/config ${ICTHOME}/${ICTDIR}
 
-cat <<EOF > /lib/systemd/system/ict.service
-[Unit]
-Description=IOTA ICT
-After=network.target
-[Service]
-ExecStart=/bin/bash -u ${ICTHOME}/run-ict.sh
-WorkingDirectory=${ICTHOME}/${ICTDIR}
-StandardOutput=inherit
-StandardError=inherit
-Restart=always
-User=ict
-[Install]
-WantedBy=multi-user.target
+cat <<EOF > /etc/init.d/ict
+#!/sbin/openrc-run
+
+name="ict daemon"
+description="IOTA ict node"
+command="${ICTHOME}/run-ict.sh"
+pidfile=/var/run/ict.pid
+
+depend() {
+  need net
+  use logger dns
+}
+
+start() {
+  ebegin "Starting ICT"
+  start-stop-daemon --start -u ict -d ${ICTHOME}/${ICTDIR} \\
+    -1 /var/log/ict.log \\
+    --exec \${command} \${command_args} \\
+    -b -m --pidfile \${pidfile}
+  eend $?
+}
+
+stop() {
+  ebegin "Stopping ICT"
+  start-stop-daemon --stop -u ict --exec \${command} \\
+    --pidfile \${pidfile}
+  eend $?
+}
 EOF
 
-systemctl enable ict
-if [ `grep -c "systemctl restart ict" /var/spool/cron/crontabs/root` -eq 0 ]; then
-	echo "2 22 * * * systemctl restart ict" >> /var/spool/cron/crontabs/root
+rc-update add ict
+if [ `grep -c "systemctl restart ict" /etc/crontab` -eq 0 ]; then
+        echo "2 22 * * * systemctl restart ict" >> /etc/crontab
 fi
 
-systemctl restart ict
-journalctl -fu ict
+/etc/init.d/ict restart
+tail -f /var/log/ict.log
+

@@ -1,7 +1,7 @@
 #/bin/sh
 
 ICTHOME="/home/ict"
-ICTDIR="oracle-ict"
+ICTDIR="omega-ict"
 GITREPO="iotaledger/ict"
 HOST="0.0.0.0"
 PORT="14265"
