@@ -1,15 +1,21 @@
 # ict-install
 Scripts for installing IOTA ICT (current omegan version) on Debian or Redhat based linux.
 
+
 Run on Debian based distros:
+
 `sudo ./install-ict_debian.sh BUILD`
 to build and run ict from the current src at github.
+
 `sudo ./install-ict_debian.sh RELEASE`
 to download and run the latest binary release from github.
 
+
 Run on Redhat based distros:
+
 `sudo ./install-ict_rehat.sh BUILD`
 to build and run ict from the current src at github.
+
 `sudo ./install-ict_redhat.sh RELEASE`
 to download and run the latest binary release from github.
 
@@ -19,7 +25,7 @@ It will:
 * Add an user "ict"
 * Download and compile the omegas ICT code in /home/ict/omega-ict
 * Generate a run script
-* Import settings from old `ict.properties` (have to located in `/home/ict/config/ict.properties`)
+* Import settings from old `ict.properties` (has to be located in `/home/ict/config/ict.properties`)
 * Generate a systemd service
 * Generate a cronjob restarting ICT every night
 * Start the ICT service
