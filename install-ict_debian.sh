@@ -3,6 +3,8 @@
 ICTHOME="/home/ict"
 ICTDIR="oracle-ict"
 GITREPO="iotaledger/ict"
+HOST="0.0.0.0"
+PORT="14265"
 NEIGHBORS="127.0.0.1:14265,127.0.0.2:14265,127.0.0.3:14265"
 
 if [ -z "$1" ] || [ "$1" != "BUILD" -a "$1" != "RELEASE" ] ; then
@@ -20,7 +22,7 @@ useradd -d ${ICTHOME} -m -s /bin/bash ict
 mkdir -p ${ICTHOME}/${ICTDIR}
 cd ${ICTHOME}/${ICTDIR}
 
-if [ "$1" == "BUILD" ]; then
+if [ "$1" = "BUILD" ]; then
 	apt-get install git gnupg dirmngr gradle -y --install-recommends
 	grep "^deb .*webupd8team" /etc/apt/sources.list || echo "deb http://ppa.launchpad.net/webupd8team/java/ubuntu trusty main" >> /etc/apt/sources.list
 	grep "^deb-src .*webupd8team" /etc/apt/sources.list || echo "deb-src http://ppa.launchpad.net/webupd8team/java/ubuntu precise main" >> /etc/apt/sources.list
@@ -32,12 +34,18 @@ if [ "$1" == "BUILD" ]; then
 	echo debconf shared/accepted-oracle-license-v1-1 seen true | debconf-set-selections
 	apt-get install oracle-java8-installer oracle-java8-set-default -y --allow-unauthenticated
 
-	git clone https://github.com/${GITREPO}
+	if [ -d ${ICTHOME}/${ICTDIR}/ict/.git ]; then
+		cd ${ICTHOME}/${ICTDIR}/ict
+		git pull
+	else
+		cd ${ICTHOME}/${ICTDIR}
+		git clone https://github.com/${GITREPO}
+	fi
 	cd ${ICTHOME}/${ICTDIR}/ict
 	gradle fatJar
 fi
 
-if [ "$1" == "RELEASE" ]; then
+if [ "$1" = "RELEASE" ]; then
 	if [ ! -f ict/ict-${VERSION}.jar ]; then
 			mkdir ict
 			cd ict
@@ -49,7 +57,7 @@ fi
 cat <<EOF > ${ICTHOME}/run-ict.sh
 #!/bin/bash
 cd ${ICTHOME}/${ICTDIR}
-java -jar ${VERSION}.jar -c ${ICTHOME}/config/ict.cfg
+java -jar ict/ict-${VERSION}.jar -c ${ICTHOME}/config/ict.cfg
 EOF
 
 chmod a+x ${ICTHOME}/run-ict.sh
@@ -57,15 +65,20 @@ chmod a+x ${ICTHOME}/run-ict.sh
 mkdir -p ${ICTHOME}/config
 
 if [ ! -f ${ICTHOME}/config/ict.cfg ]; then
+	if [ -f ${ICTHOME}/config/ict.properties ]; then
+		HOST=`sed -ne 's/^host\s*=\s*//gp' ${ICTHOME}/config/ict.properties`
+		PORT=`sed -ne 's/^port\s*=\s*//gp' ${ICTHOME}/config/ict.properties`
+		NEIGHBORS=`sed -ne 's/^neighbor\(A\|B\|C\)\(Host\|Port\)\s*=\s*//gp' ${ICTHOME}/config/ict.properties | sed ':a;N;$!ba;s/\n/:/g;s/:\([^:]*\):/:\1,/g'`
+	fi	
 	cat <<EOF > ${ICTHOME}/config/ict.cfg
 name=ict
 ixis=
-port=14265
+port=${PORT}
 log_round_duration=60000
 ixi_enabled=false
 spam_enabled=false
 min_forward_delay=0
-host=0.0.0.0
+host=${HOST}
 neighbors=${NEIGHBORS}
 max_forward_delay=200
 EOF
