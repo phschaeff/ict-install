@@ -46,6 +46,7 @@ if [ "$1" = "BUILD" ]; then
 fi
 
 if [ "$1" = "RELEASE" ]; then
+	apt-get install openjdk-8-jre-headless wget -y --install-recommends
 	if [ ! -f ict/ict-${VERSION}.jar ]; then
 			mkdir ict
 			cd ict

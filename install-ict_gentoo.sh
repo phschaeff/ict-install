@@ -43,6 +43,7 @@ if [ "$1" = "BUILD" ]; then
 fi
 
 if [ "$1" = "RELEASE" ]; then
+	emerge -u virtual/jre net-misc/wget 
 	if [ ! -f ict/ict-${VERSION}.jar ]; then
 			mkdir ict
 			cd ict

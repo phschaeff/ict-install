@@ -43,6 +43,7 @@ if [ "$1" = "BUILD" ]; then
 fi
 
 if [ "$1" = "RELEASE" ]; then
+	yum -y install java-1.8.0-openjdk-headless wget
 	if [ ! -f ict/ict-${VERSION}.jar ]; then
 			mkdir ict
 			cd ict
