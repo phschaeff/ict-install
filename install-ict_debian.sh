@@ -42,7 +42,7 @@ if [ "$1" = "BUILD" ]; then
 		git clone https://github.com/${GITREPO}
 	fi
 	cd ${ICTHOME}/${ICTDIR}/ict
-	rm ict.jar
+	rm *.jar
 	gradle fatJar
 	mv *.jar ict.jar
 fi
@@ -52,7 +52,7 @@ if [ "$1" = "RELEASE" ]; then
 	if [ ! -f ict/ict-${VERSION}.jar ]; then
 			mkdir ict
 			cd ict
-			rm ict.jar
+			rm *.jar
 			wget https://github.com/iotaledger/ict/releases/download/${VERSION}/ict-${VERSION}.jar
 			mv *.jar ict.jar
 	fi
