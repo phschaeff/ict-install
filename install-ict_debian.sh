@@ -42,7 +42,9 @@ if [ "$1" = "BUILD" ]; then
 		git clone https://github.com/${GITREPO}
 	fi
 	cd ${ICTHOME}/${ICTDIR}/ict
+	rm *.jar
 	gradle fatJar
+	mv *.jar ict.jar
 fi
 
 if [ "$1" = "RELEASE" ]; then
@@ -50,18 +52,11 @@ if [ "$1" = "RELEASE" ]; then
 	if [ ! -f ict/ict-${VERSION}.jar ]; then
 			mkdir ict
 			cd ict
+			rm *.jar
 			wget https://github.com/iotaledger/ict/releases/download/${VERSION}/ict-${VERSION}.jar
+			mv *.jar ict.jar
 	fi
 fi
-
-
-cat <<EOF > ${ICTHOME}/run-ict.sh
-#!/bin/bash
-cd ${ICTHOME}/${ICTDIR}
-java -jar ict/ict-${VERSION}.jar -c ${ICTHOME}/config/ict.cfg
-EOF
-
-chmod a+x ${ICTHOME}/run-ict.sh
 
 mkdir -p ${ICTHOME}/config
 
@@ -92,7 +87,7 @@ cat <<EOF > /lib/systemd/system/ict.service
 Description=IOTA ICT
 After=network.target
 [Service]
-ExecStart=/bin/bash -u ${ICTHOME}/run-ict.sh
+ExecStart=/bin/java -jar ict/ict.jar -c ${ICTHOME}/config/ict.cfg
 WorkingDirectory=${ICTHOME}/${ICTDIR}
 StandardOutput=inherit
 StandardError=inherit
