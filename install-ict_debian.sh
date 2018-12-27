@@ -16,7 +16,6 @@ fi
 apt-get update
 apt-get upgrade -y
 apt-get install curl -y --install-recommends
-VERSION=`curl --silent "https://api.github.com/repos/${GITREPO}/releases" | grep '"tag_name":' |head -1 | sed -E 's/.*"([^"]+)".*/\1/'`
 
 useradd -d ${ICTHOME} -m -s /bin/bash ict
 mkdir -p ${ICTHOME}/${ICTDIR}
@@ -42,22 +41,26 @@ if [ "$1" = "BUILD" ]; then
 		git clone https://github.com/${GITREPO}
 	fi
 	cd ${ICTHOME}/${ICTDIR}/ict
+	rm -f *.jar
 	gradle fatJar
+	VERSION=`ls *.jar | sed -e 's/ict-\(.*\)\.jar/\1/'`
 fi
 
 if [ "$1" = "RELEASE" ]; then
-	apt-get install openjdk-8-jre-headless wget -y --install-recommends
 	if [ ! -f ict/ict-${VERSION}.jar ]; then
 			mkdir ict
 			cd ict
+			rm -f *.jar
+			VERSION=`curl --silent "https://api.github.com/repos/${GITREPO}/releases" | grep '"tag_name":' |head -1 | sed -E 's/.*"([^"]+)".*/\1/'`
 			wget https://github.com/iotaledger/ict/releases/download/${VERSION}/ict-${VERSION}.jar
 	fi
 fi
 
 
 cat <<EOF > ${ICTHOME}/run-ict.sh
-#!/bin/bash
+#!/bin/sh
 cd ${ICTHOME}/${ICTDIR}
+#start ixi here
 java -jar ict/ict-${VERSION}.jar -c ${ICTHOME}/config/ict.cfg
 EOF
 
@@ -103,9 +106,13 @@ WantedBy=multi-user.target
 EOF
 
 systemctl enable ict
-if [ `grep -c "systemctl restart ict" /var/spool/cron/crontabs/root` -eq 0 ]; then
-	echo "2 22 * * * systemctl restart ict" >> /var/spool/cron/crontabs/root
-fi
+if [ -f /var/spool/cron/crontabs/root ]; then
+	if [ `grep -c "systemctl restart ict" /var/spool/cron/crontabs/root` -eq 0 ]; then
+		echo "2 22 * * * systemctl restart ict" >> /var/spool/cron/crontabs/root
+	fi
+	else
+		grep "systemctl restart ict" /etc/crontab || echo "2 22 * * * systemctl restart ict" >> /etc/crontab
+	fi
 
 systemctl restart ict
 journalctl -fu ict

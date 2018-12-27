@@ -14,7 +14,6 @@ if [ -z "$1" ] || [ "$1" != "BUILD" -a "$1" != "RELEASE" ] ; then
 fi
 
 yum -y install curl
-VERSION=`curl --silent "https://api.github.com/repos/${GITREPO}/releases" | grep '"tag_name":' |head -1 | sed -E 's/.*"([^"]+)".*/\1/'`
 
 useradd -d ${ICTHOME} -m -s /bin/bash ict
 mkdir -p ${ICTHOME}/${ICTDIR}
@@ -39,22 +38,26 @@ if [ "$1" = "BUILD" ]; then
 		git clone https://github.com/${GITREPO}
 	fi
 	cd ${ICTHOME}/${ICTDIR}/ict
+	rm -f *.jar
 	gradle fatJar
+	VERSION=`ls *.jar | sed -e 's/ict-\(.*\)\.jar/\1/'`
 fi
 
 if [ "$1" = "RELEASE" ]; then
-	yum -y install java-1.8.0-openjdk-headless wget
 	if [ ! -f ict/ict-${VERSION}.jar ]; then
 			mkdir ict
 			cd ict
+			rm -f *.jar
+			VERSION=`curl --silent "https://api.github.com/repos/${GITREPO}/releases" | grep '"tag_name":' |head -1 | sed -E 's/.*"([^"]+)".*/\1/'`
 			wget https://github.com/iotaledger/ict/releases/download/${VERSION}/ict-${VERSION}.jar
 	fi
 fi
 
 
 cat <<EOF > ${ICTHOME}/run-ict.sh
-#!/bin/bash
+#!/bin/sh
 cd ${ICTHOME}/${ICTDIR}
+#start ixi here
 java -jar ict/ict-${VERSION}.jar -c ${ICTHOME}/config/ict.cfg
 EOF
 
