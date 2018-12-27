@@ -42,7 +42,7 @@ if [ "$1" = "BUILD" ]; then
 	fi
 	cd ${ICTHOME}/${ICTDIR}/ict
 	rm -f *.jar
-	gradle fatJar
+	gradle fatJar || exit "BUILD did not work. Try ./$0 RELEASE"
 	VERSION=`ls *.jar | sed -e 's/ict-\(.*\)\.jar/\1/'`
 fi
 
