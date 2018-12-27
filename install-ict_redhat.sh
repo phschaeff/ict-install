@@ -102,6 +102,7 @@ User=ict
 WantedBy=multi-user.target
 EOF
 
+systemctl daemon-reload
 systemctl enable ict
 if [ `grep -c "systemctl restart ict" /etc/crontab` -eq 0 ]; then
 	echo "2 22 * * * systemctl restart ict" >> /etc/crontab

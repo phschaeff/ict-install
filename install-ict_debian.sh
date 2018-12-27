@@ -105,6 +105,7 @@ User=ict
 WantedBy=multi-user.target
 EOF
 
+systemctl daemon-reload
 systemctl enable ict
 if [ -f /var/spool/cron/crontabs/root ]; then
 	if [ `grep -c "systemctl restart ict" /var/spool/cron/crontabs/root` -eq 0 ]; then
