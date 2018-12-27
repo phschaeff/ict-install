@@ -25,7 +25,7 @@ if [ "$1" = "BUILD" ]; then
 	wget https://raw.githubusercontent.com/metalcated/scripts/master/install_java.sh -O -  | sed -e 's/^JAVA_TYPE="jre"/JAVA_TYPE="jdk"/' | sh
 	gradle_version=2.10
 	wget -c http://services.gradle.org/distributions/gradle-${gradle_version}-all.zip
-	unzip  gradle-${gradle_version}-all.zip -d /opt
+	unzip -o gradle-${gradle_version}-all.zip -d /opt
 	ln -s /opt/gradle-${gradle_version} /opt/gradle
 	printf "export GRADLE_HOME=/opt/gradle\nexport PATH=\$PATH:\$GRADLE_HOME/bin\n" > /etc/profile.d/gradle.sh
 	source /etc/profile.d/gradle.sh
