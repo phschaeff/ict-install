@@ -1,0 +1,17 @@
+
+
+2018-12-28:
+- ict.cfg created by current ict version
+- values of old ict.cfg file are migrated to new ict.cfg
+- cron job is no longer added
+- old cron jobs are removed
+- allow nodename as 2nd command line argument
+- created a generic install script for most distros
+
+2018-12-27:
+- handling snapshot versions in BUILD mode
+- minor change to cron configuration
+
+2018-12-24:
+- new install scripts for omega-ict
+

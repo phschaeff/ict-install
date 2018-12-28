@@ -9,7 +9,7 @@ NEIGHBORS="127.0.0.1:14265,127.0.0.2:14265,127.0.0.3:14265"
 
 if [ -z "$1" ] || [ "$1" != "BUILD" -a "$1" != "RELEASE" ] ; then
 	echo 'Please choose between BUILD or RELEASE:'
-    echo './$0 [BUILD|RELEASE]'
+    echo './$0 BUILD|RELEASE ["NODENAME (ict-0)"]'
     exit
 fi
 
@@ -42,7 +42,7 @@ if [ "$1" = "BUILD" ]; then
 	fi
 	cd ${ICTHOME}/${ICTDIR}/ict
 	rm -f *.jar
-	gradle fatJar || exit "BUILD did not work. Try ./$0 RELEASE"
+	gradle fatJar || exit "BUILD did not work. Try ./$0 RELEASE [\"NODENAME (ict-0)\"]"
 	VERSION=`ls *.jar | sed -e 's/ict-\(.*\)\.jar/\1/'`
 fi
 
@@ -61,33 +61,42 @@ cat <<EOF > ${ICTHOME}/run-ict.sh
 #!/bin/sh
 cd ${ICTHOME}/${ICTDIR}
 #start ixi here
-java -jar ict/ict-${VERSION}.jar -c ${ICTHOME}/config/ict.cfg
+java -jar ${ICTHOME}/${ICTDIR}/ict/ict-${VERSION}.jar -c ${ICTHOME}/config/ict.cfg
 EOF
 
 chmod a+x ${ICTHOME}/run-ict.sh
 
+
 mkdir -p ${ICTHOME}/config
+cd ${ICTHOME}/${ICTDIR}
+rm -f ict.cfg
+java -jar /home/ict/omega-ict/ict/ict-0.3-SNAPSHOT.jar &
+last_pid=$!
+sleep 3
+kill -KILL $last_pid
 
 if [ ! -f ${ICTHOME}/config/ict.cfg ]; then
 	if [ -f ${ICTHOME}/config/ict.properties ]; then
-		HOST=`sed -ne 's/^host\s*=\s*//gp' ${ICTHOME}/config/ict.properties`
-		PORT=`sed -ne 's/^port\s*=\s*//gp' ${ICTHOME}/config/ict.properties`
-		NEIGHBORS=`sed -ne 's/^neighbor\(A\|B\|C\)\(Host\|Port\)\s*=\s*//gp' ${ICTHOME}/config/ict.properties | sed ':a;N;$!ba;s/\n/:/g;s/:\([^:]*\):/:\1,/g'`
-	fi	
-	cat <<EOF > ${ICTHOME}/config/ict.cfg
-name=ict
-ixis=
-port=${PORT}
-log_round_duration=60000
-ixi_enabled=false
-spam_enabled=false
-min_forward_delay=0
-host=${HOST}
-neighbors=${NEIGHBORS}
-max_forward_delay=200
-EOF
+		host=`sed -ne 's/^host\s*=\s*//gp' ${ICTHOME}/config/ict.properties`
+		port=`sed -ne 's/^port\s*=\s*//gp' ${ICTHOME}/config/ict.properties`
+		neighbors=`sed -ne 's/^neighbor\(A\|B\|C\)\(Host\|Port\)\s*=\s*//gp' ${ICTHOME}/config/ict.properties | sed ':a;N;$!ba;s/\n/:/g;s/:\([^:]*\):/:\1,/g'`
+		sed -i 's/^host=.*$/host=$host/;s/^port=.*$/port=$port/;s/^neighbors=.*$/neighbors=$neighbors/' ict.cfg
+	fi
+else
+	IFS="="
+	cat ${ICTHOME}/config/ict.cfg | while read -r varname value ; do
+		echo "Setting config $varname to ${value}"
+		sed -i "s/^$varname=.*$/$varname=$value/" ict.cfg
+	done
 fi
 
+if [ ! -z "$2" ] ; then
+	echo "Setting name of the node to $2"
+	sed -i "s/^name=.*$/name=$2/" ict.cfg
+fi
+
+cp -f ${ICTHOME}/config/ict.cfg ${ICTHOME}/config/ict.cfg.last
+cp -f ict.cfg ${ICTHOME}/config/ict.cfg
 chown -R ict ${ICTHOME}/config ${ICTHOME}/${ICTDIR}
 
 cat <<EOF > /lib/systemd/system/ict.service
@@ -105,15 +114,11 @@ User=ict
 WantedBy=multi-user.target
 EOF
 
+grep "systemctl restart ict" /var/spool/cron/crontabs/root && sed -i 's/^.*systemctl restart ict.*$//' /var/spool/cron/crontabs/root
+grep "systemctl restart ict" /etc/crontab && sed -i 's/^.*systemctl restart ict.*$//' /etc/crontab
+
 systemctl daemon-reload
 systemctl enable ict
-if [ -f /var/spool/cron/crontabs/root ]; then
-	if [ `grep -c "systemctl restart ict" /var/spool/cron/crontabs/root` -eq 0 ]; then
-		echo "2 22 * * * systemctl restart ict" >> /var/spool/cron/crontabs/root
-	fi
-	else
-		grep "systemctl restart ict" /etc/crontab || echo "2 22 * * * systemctl restart ict" >> /etc/crontab
-	fi
 
 systemctl restart ict
 journalctl -fu ict
