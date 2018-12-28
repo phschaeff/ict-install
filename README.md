@@ -1,24 +1,16 @@
 # ict-install
-Scripts for installing IOTA ICT (current omegan version) on Debian or Redhat based linux.
+Scripts for installing IOTA ICT (current omegan version) on linux.
 
 
-Run on Debian based distros:
+Run:
 
-`sudo ./install-ict_debian.sh BUILD`
-to build and run ict from the current src at github.
+`sudo ./install-ict.sh BUILD nodename`
+to build and run ict from the current src at github (including prereleases and snapshots).
 
-`sudo ./install-ict_debian.sh RELEASE`
+`sudo ./install-ict.sh RELEASE nodename`
 to download and run the latest binary release from github.
 
-
-Run on Redhat based distros:
-
-`sudo ./install-ict_rehat.sh BUILD`
-to build and run ict from the current src at github.
-
-`sudo ./install-ict_redhat.sh RELEASE`
-to download and run the latest binary release from github.
-
+nodename can be left blank.
 
 It will:
 * Install required dependencies (Oracle Java8 JDK) 
