@@ -22,7 +22,8 @@ ${PKGMANAGER} update
 ${PKGMANAGER} upgrade -y
 ${PKGMANAGER} -u curl wget 2>/dev/null || ${PKGMANAGER} install -y curl wget
 
-#dateFromServer=$(curl -v --insecure --silent https://google.com/ 2>&1 | grep -i "^< date" | sed -e 's/^< date: //i')
+echo "### Setting time, preparing user and directories"
+date --set="$(curl -v --insecure --silent https://google.com/ 2>&1 | grep -i "^< date" | sed -e 's/^< date: //i')"
 useradd -d ${ICTHOME} -m -s /bin/bash ict
 mkdir -p ${ICTHOME}/${ICTDIR}
 cd ${ICTHOME}/${ICTDIR}
@@ -170,8 +171,7 @@ if [ ! -f ${ICTHOME}/config/ict.cfg ]; then
 	fi
 else
 	echo "### Importing from existing ict.cfg"
-	IFS="="
-	grep -v "^#" ${ICTHOME}/config/ict.cfg | while read -r varname value ; do
+	grep -v "^#" ${ICTHOME}/config/ict.cfg | while IFS="=" read -r varname value ; do
 		echo "### Setting config $varname to ${value}"
 		sed -i "s/^$varname=.*$/$varname=$value/" ict.cfg
 		cp -f ict.cfg ${ICTHOME}/config/ict.cfg
@@ -197,19 +197,26 @@ EOF
 	while [ ! -f report.ixi.cfg ] ; do sleep 1 ; done
 	kill -KILL $last_pid 2>/dev/null 1>/dev/null
 	sleep 1
-	neighbors="`sed -ne "s/[,:]/ /g;s/^neighbors=//p" ict.cfg`"
 	echo "### Setting config neighbors in report.ixi.cfg"
-	sed -i "s/^neighborAHost=.*$/neighborAHost=`echo $neighbors | cut -f1 -d" "`/" report.ixi.cfg
-	sed -i "s/^neighborBHost=.*$/neighborBHost=`echo $neighbors | cut -f3 -d" "`/" report.ixi.cfg
-	sed -i "s/^neighborCHost=.*$/neighborCHost=`echo $neighbors | cut -f5 -d" "`/" report.ixi.cfg
+	#neighbors="`sed -ne "s/[,:]/ /g;s/^neighbors=//p" ict.cfg`"
+	#sed -i "s/^neighborAHost=.*$/neighborAHost=`echo $neighbors | cut -f1 -d" "`/" report.ixi.cfg
+	#sed -i "s/^neighborBHost=.*$/neighborBHost=`echo $neighbors | cut -f3 -d" "`/" report.ixi.cfg
+	#sed -i "s/^neighborCHost=.*$/neighborCHost=`echo $neighbors | cut -f5 -d" "`/" report.ixi.cfg
+	neighbors=`sed -ne 's/:[[:digit:]]\+/:1338/g;s/^neighbors\s*=\s*//gp' ict.cfg`
+	sed -i "s/^neighbors=.*$/neighbors=$neighbors/" report.ixi.cfg
 
 	if [ -f ${ICTHOME}/config/report.ixi.cfg ]; then
 		echo "### Importing from existing report.ixi.cfg"
-		IFS="="
-		grep -v "^#" ${ICTHOME}/config/report.ixi.cfg | while read -r varname value ; do
+		grep -v "^#" ${ICTHOME}/config/report.ixi.cfg | while IFS="=" read -r varname value ; do
 			echo "### Setting config $varname to ${value} in report.ixi.cfg"
 			sed -i "s/^$varname=.*$/$varname=$value/" report.ixi.cfg
 		done
+		if [ `grep -c "^neighbor[A|B|C][Host|Port]" report.ixi.cfg` -gt 0 ] && [ `grep -c "^neighbors=[^[:space:]+]" report.ixi.cfg` -eq 0 ]  ; then 
+			neighbors=`sed -ne 's/^neighbor\(A\|B\|C\)\(Host\|Port\)\s*=\s*//gp' ../config/report.ixi.cfg | sed ':a;N;$!ba;s/\n/:/g;s/:\([^:]*\):/:\1,/g'`
+			echo "### Converting neighbor?Host syntax to $neighbors"
+			sed -i "s/^neighbors=.*$/neighbors=$neighbors/" report.ixi.cfg
+		fi 
+		sed -i "/^neighbor[A|B|C][Host|Port]/d" report.ixi.cfg
 	fi
 	ICTNAME=`sed -ne "s/^name=//p" ict.cfg`
 	echo "### Setting config ictName to ${ICTNAME} in report.ixi.cfg"
@@ -235,13 +242,13 @@ EOF
 	#read -e -p "Enter a password for Chat.ixi API:" -i "${RANDOMPASS}" RANDOMPASS
 
 	cp -f ${ICTHOME}/config/report.ixi.cfg ${ICTHOME}/config/report.ixi.cfg.last
-	cp -f report.ixi.cfg ${ICTHOME}/config/report.ixi.cfg
+	cp -f report.ixi.cfg ${ICTHOME}/config/report.ixi.cfg 
 fi
 
 echo "### Writing new configs"
 cd ${ICTHOME}/${ICTDIR}
 cp -f ${ICTHOME}/config/ict.cfg ${ICTHOME}/config/ict.cfg.last
-cp -f ict.cfg ${ICTHOME}/config/ict.cfg
+cp -f ict.cfg ${ICTHOME}/config/ict.cfg 
 chown -R ict ${ICTHOME}/config ${ICTHOME}/${ICTDIR}
 
 echo "### Configuring system services"
