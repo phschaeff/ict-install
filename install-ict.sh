@@ -185,10 +185,19 @@ if [ "$1" = "BUILD" ]; then
 cd ${ICTHOME}/${ICTDIR}
 java -jar ${ICTHOME}/${ICTDIR}/ict/ict-${VERSION}.jar -c ${ICTHOME}/config/ict.cfg &
 ict_pid=\$!
+echo \$ict_pid > ict.pid
 sleep 30
 java -jar ${ICTHOME}/${ICTDIR}/Report.ixi/report.ixi-${REPORT_IXI_VERSION}.jar ${ICTHOME}/config/report.ixi.cfg &
 report_ixi_pid=\$!
+echo \$report_ixi_pid > report_ixi.pid
 EOF
+	cat <<EOF > ${ICTHOME}/stop-ict.sh
+#!/bin/sh
+cd ${ICTHOME}/${ICTDIR}
+kill <report_ixi.pid
+kill <ict.pid
+EOF
+	chmod a+x ${ICTHOME}/run-ict.sh ${ICTHOME}/stop-ict.sh
 	cd ${ICTHOME}/${ICTDIR}
 	echo "### Creating default report.ixi.cfg template"
 	rm -f report.ixi.cfg
@@ -252,7 +261,7 @@ cp -f ict.cfg ${ICTHOME}/config/ict.cfg
 chown -R ict ${ICTHOME}/config ${ICTHOME}/${ICTDIR}
 
 echo "### Configuring system services"
-if [ ! -z `which systemctl` ] ; then
+if [ $(systemctl is-active --quiet dbus 2>/dev/null; echo $?) -eq 0 ] ; then
 	echo "### systemd"
 	cat <<EOF > /lib/systemd/system/ict.service
 	[Unit]
@@ -272,7 +281,6 @@ EOF
 	chmod u+x /lib/systemd/system/ict.service
 	systemctl daemon-reload
 	systemctl enable ict
-	for ixi in $(ls /lib/systemd/system/ict_* | rev | cut -f1 -d"/" | rev) ; do systemctl stop ${ixi} ; done
 	systemctl restart ict
 	echo "### ict.service installed, added to boot, and restarted"
 
@@ -298,7 +306,7 @@ User=ict
 WantedBy=multi-user.target
 EOF
 		chmod u+x /lib/systemd/system/ict_report-ixi.service
-		
+		for ixi in $(ls /lib/systemd/system/ict_* | rev | cut -f1 -d"/" | rev) ; do systemctl stop ${ixi} ; done
 		cat <<EOF > /lib/systemd/system/ict_chat-ixi.service
 [Unit]
 Description=Ict Chat IXI
@@ -308,7 +316,6 @@ After=ict.service
 [Service]
 ExecStartPre=/bin/sleep 30
 ExecStart=/usr/bin/java -jar ${ICTHOME}/${ICTDIR}/chat.ixi/chat.ixi-${CHAT_IXI_VERSION}.jar ${ICTNAME} ${CHATUSER} ${RANDOMPASS}
-ExecStartPost=/usr/bin/echo "Chat.ixi Username: ${CHATUSER} Password:${RANDOMPASS}"
 WorkingDirectory=${ICTHOME}/${ICTDIR}
 StandardOutput=inherit
 StandardError=inherit
@@ -325,7 +332,7 @@ EOF
 		echo "### ict_report-ixi.service installed, added to boot, and restarted"
 
 	fi
-	journalctl -fu ict
+	journalctl -f _UID=$(id -u ict)
 	
 elif [ -f /sbin/openrc-run ] ; then
 	echo "### openrc"
@@ -367,7 +374,7 @@ EOF
 	grep "ict restart" /etc/crontab && sed -i 's/^.*ict restart.*$//' /etc/crontab
 	
 	rc-update add ict
-	for ixi in /etc/init.d/ict_* ; do $ixi stop ; done
+	
 	/etc/init.d/ict restart
 	echo "### ict daemon installed, added to boot, and restarted"
 	
@@ -403,6 +410,7 @@ stop() {
 }
 EOF
 		chmod u+x /etc/init.d/ict_report-ixi
+		for ixi in /etc/init.d/ict_* ; do $ixi stop ; done
 		cat <<EOF > /etc/init.d/ict_chat-ixi
 #!/sbin/openrc-run
 
@@ -444,7 +452,6 @@ EOF
 else
 	echo "### NOT INSTALLED AS SERVICE. STARTING IN FORGROUND."
 	cd ${ICTHOME}/${ICTDIR}
-	sudo --user=ict ${ICTHOME}/run-ict.sh &
-	sleep 30
-	sudo --user=ict /usr/bin/java -jar ${ICTHOME}/${ICTDIR}/Report.ixi/report.ixi-${REPORT_IXI_VERSION}.jar ${ICTHOME}/config/report.ixi.cfg 
+	${ICTHOME}/stop-ict.sh
+	sudo --user=ict ${ICTHOME}/run-ict.sh & 
 fi
