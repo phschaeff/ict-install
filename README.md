@@ -4,8 +4,18 @@ Scripts for installing IOTA ICT (current omegan version) on linux.
 
 Run:
 
-`sudo ./install-ict.sh BUILD nodename`
+`sudo ./install-ict.sh BUILD "<name> (ict-<number>)"`
 to build and run ict from the current src at github (including prereleases and snapshots).
+This also builds and runs Report.ixi and builds and installs (but does not run) chat.ixi.
+
+In order to start chat.ixi run: 
+`sudo systemctl start ict_chat-ixi`
+Username and password are configured in `/home/ict/config/chat.ixi.cfg`.
+
+The option "Nick (ict-0)" is needed by Report.ixi. If not provided the install script will ask for it at a later point.
+The naming convention is: "<name> (ict-<number>)"
+  where name is your nickname on discord
+  and number is the number of your ict. 
 
 `sudo ./install-ict.sh RELEASE nodename`
 to download and run the latest binary release from github.
