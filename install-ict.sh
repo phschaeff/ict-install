@@ -32,7 +32,7 @@ if [ "$1" = "BUILD" ]; then
 	echo "### Installing dependencies for BUILD" 
 	case "$PKGMANAGER" in
 	*apt-get* )
-		${PKGMANAGER} install -y git gnupg dirmngr gradle
+		${PKGMANAGER} install -y git gnupg dirmngr gradle net-tools
 		version=$(javac -version 2>&1)
 		if [ "$version" != "javac 1.8.0_191" ] ; then 
 			grep "^deb .*webupd8team" /etc/apt/sources.list || echo "deb http://ppa.launchpad.net/webupd8team/java/ubuntu trusty main" >> /etc/apt/sources.list
@@ -47,7 +47,7 @@ if [ "$1" = "BUILD" ]; then
 		fi
 		;;
 	* )
-		${PKGMANAGER} -u git unzip 2>/dev/null || ${PKGMANAGER} install -y git unzip
+		${PKGMANAGER} -u git unzip net-tools 2>/dev/null || ${PKGMANAGER} install -y git unzip net-tools
 		version=$(javac -version 2>&1)
 		if [ "$version" != "javac 1.8.0_192" ] ; then 
 			cd /tmp
@@ -194,8 +194,8 @@ EOF
 	cat <<EOF > ${ICTHOME}/stop-ict.sh
 #!/bin/sh
 cd ${ICTHOME}/${ICTDIR}
-kill <report_ixi.pid
-kill <ict.pid
+kill \$(cat ${ICTHOME}/${ICTDIR}/report_ixi.pid)
+kill \$(cat ${ICTHOME}/${ICTDIR}/ict.pid)
 EOF
 	chmod a+x ${ICTHOME}/run-ict.sh ${ICTHOME}/stop-ict.sh
 	cd ${ICTHOME}/${ICTDIR}
@@ -294,6 +294,7 @@ EOF
 	grep "systemctl restart ict" /etc/crontab && sed -i 's/^.*systemctl restart ict.*$//' /etc/crontab
 
 	if [ "$1" = "BUILD" ]; then
+		port=`sed -ne 's/^port\s*=\s*//gp' ${ICTHOME}/config/ict.properties`
 		cat <<EOF > /lib/systemd/system/ict_report-ixi.service
 [Unit]
 Description=Ict Report IXI
@@ -301,7 +302,7 @@ Requires=ict.service
 After=ict.service
 
 [Service]
-ExecStartPre=/bin/sleep 30
+ExecStartPre=while [ \$(netstat -nlpu | grep -c "^udp.*:$port") -eq 0 ] ; do sleep 1 ; done; sleep 10
 ExecStart=/usr/bin/java -jar ${ICTHOME}/${ICTDIR}/Report.ixi/report.ixi-${REPORT_IXI_VERSION}.jar ${ICTHOME}/config/report.ixi.cfg
 WorkingDirectory=${ICTHOME}/${ICTDIR}
 StandardOutput=inherit
@@ -320,7 +321,7 @@ Requires=ict.service
 After=ict.service
 
 [Service]
-ExecStartPre=/bin/sleep 30
+ExecStartPre=while [ \$(netstat -nlpu | grep -c "^udp.*:$port") -eq 0 ] ; do sleep 1 ; done; sleep 10
 ExecStart=/usr/bin/java -jar ${ICTHOME}/${ICTDIR}/chat.ixi/chat.ixi-${CHAT_IXI_VERSION}.jar ${ICTNAME} ${CHATUSER} ${RANDOMPASS}
 WorkingDirectory=${ICTHOME}/${ICTDIR}
 StandardOutput=inherit
@@ -334,7 +335,9 @@ EOF
 		echo "### ict_repost-chat.service installed, but not started. Username: ${CHATUSER} Password:${RANDOMPASS}"
 		systemctl daemon-reload
 		systemctl enable ict_report-ixi
-		systemctl restart ict_report-ixi &
+		systemctl stop ict_report-ixi.service
+		sleep 1
+		systemctl start ict_report-ixi 
 		echo "### ict_report-ixi.service installed, added to boot, and restarted"
 
 	fi
@@ -385,6 +388,7 @@ EOF
 	echo "### ict daemon installed, added to boot, and restarted"
 	
 	if [ "$1" = "BUILD" ]; then
+		port=`sed -ne 's/^port\s*=\s*//gp' ${ICTHOME}/config/ict.properties`
 		cat <<EOF > /etc/init.d/ict_report-ixi
 #!/sbin/openrc-run
 
@@ -401,6 +405,10 @@ depend() {
 
 start() {
   ebegin "Starting ICT Report.ixi"
+  while [ \$(netstat -nlpu | grep -c "^udp.*:$port") -eq 0 ] ; do 
+	sleep 1
+  done
+  sleep 10
   start-stop-daemon --start -u ict -d ${ICTHOME}/${ICTDIR} \\
     -1 /var/log/ict_report-ixi.log \\
     --exec \${command} \\
@@ -433,6 +441,10 @@ depend() {
 
 start() {
   ebegin "Starting ICT Chat.ixi. Username: ${CHATUSER} Password:${RANDOMPASS}"
+  while [ \$(netstat -nlpu | grep -c "^udp.*:$port") -eq 0 ] ; do 
+	sleep 1
+  done
+  sleep 10
   start-stop-daemon --start -u ict -d ${ICTHOME}/${ICTDIR} \\
     -1 /var/log/ict_chat-ixi.log \\
     --exec \${command} \\
@@ -451,7 +463,9 @@ EOF
 		echo "### ict_chat-ixi daemon installed, but not started. Username: ${CHATUSER} Password:${RANDOMPASS}"
 
 		rc-update add ict_report-ixi
-		/etc/init.d/ict_report-ixi restart
+		/etc/init.d/ict_report-ixi stop
+		sleep 1
+		/etc/init.d/ict_report-ixi start
 		echo "### ict_report-ixi daemon installed, added to boot, and restarted"
 	fi
 	tail -f /var/log/ict.log /var/log/ict_report-ixi.log
