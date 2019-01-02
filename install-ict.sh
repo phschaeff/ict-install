@@ -245,11 +245,17 @@ EOF
 	fi
 
 	sed -i "s/^ixi_enabled=.*$/ixi_enabled=true/" ict.cfg
-	CHATUSER=`sed -ne "s/^name=\(.*\) .*$/\1/p" report.ixi.cfg`
-	RANDOMPASS=`< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c12`
-	#read -e -p "Enter a password for Chat.ixi API:" -i "${CHATUSER}" CHATUSER
-	#read -e -p "Enter a password for Chat.ixi API:" -i "${RANDOMPASS}" RANDOMPASS
-
+	if [ -f ${ICTHOME}/config/chat.ixi.cfg ] ; then
+		CHATUSER=`sed -ne "s/^username=\(.*\)$/\1/gp" ${ICTHOME}/config/chat.ixi.cfg`
+		RANDOMPASS=`sed -ne "s/^password=\(.*\)$/\1/gp" ${ICTHOME}/config/chat.ixi.cfg`
+	else 
+		CHATUSER=`sed -ne "s/^name=\(.*\) .*$/\1/p" report.ixi.cfg`
+		RANDOMPASS=`< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c12`
+		#read -e -p "Enter a password for Chat.ixi API:" -i "${CHATUSER}" CHATUSER
+		#read -e -p "Enter a password for Chat.ixi API:" -i "${RANDOMPASS}" RANDOMPASS
+		echo "username=$CHATUSER" > ${ICTHOME}/config/chat.ixi.cfg
+		echo "password=$RANDOMPASS" >> ${ICTHOME}/config/chat.ixi.cfg
+	fi
 	cp -f ${ICTHOME}/config/report.ixi.cfg ${ICTHOME}/config/report.ixi.cfg.last
 	cp -f report.ixi.cfg ${ICTHOME}/config/report.ixi.cfg 
 fi
