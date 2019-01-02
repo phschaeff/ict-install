@@ -1,4 +1,4 @@
-#/bin/sh
+#!/bin/sh
 
 ICTHOME="/home/ict"
 ICTDIR="omega-ict"
@@ -425,6 +425,7 @@ stop() {
 }
 EOF
 		chmod u+x /etc/init.d/ict_report-ixi
+		touch /var/log/ict_report-ixi.log && chown ict /var/log/ict_report-ixi.log
 		for ixi in /etc/init.d/ict_* ; do $ixi stop ; done
 		cat <<EOF > /etc/init.d/ict_chat-ixi
 #!/sbin/openrc-run
@@ -432,7 +433,7 @@ EOF
 name="ict chat daemon"
 description="IOTA ict node chat ixi"
 command="/usr/bin/java"
-command_args="-jar ${ICTHOME}/${ICTDIR}/chat.ixi/chat.ixi-${CHAT_IXI_VERSION}.jar ${ICTNAME} \$(sed -ne \\"s/^username=\(.*\)$/\1/gp\\" ${ICTHOME}/config/chat.ixi.cfg) \$(sed -ne \\"s/^password=\(.*\)$/\1/gp\\" ${ICTHOME}/config/chat.ixi.cfg)"
+command_args="-jar /home/ict/omega-ict/chat.ixi/chat.ixi-1.1.jar"
 pidfile=/var/run/ict_chat-ixi.pid
 
 depend() {
@@ -441,16 +442,18 @@ depend() {
 }
 
 start() {
-  ebegin "Starting ICT Chat.ixi. Username: ${CHATUSER} Password:${RANDOMPASS}"
+  ebegin "Starting ICT Chat.ixi."
   while [ \$(netstat -nlpu | grep -c "^udp.*:$port") -eq 0 ] ; do 
 	sleep 1
   done
   sleep 10
-  start-stop-daemon --start -u ict -d ${ICTHOME}/${ICTDIR} \\
-    -1 /var/log/ict_chat-ixi.log \\
-    --exec \${command} \\
-    -b -m --pidfile \${pidfile} \\
-    -- \${command_args}
+  source ${ICTHOME}/config/chat.ixi.cfg
+  start-stop-daemon --start -u ict -d ${ICTHOME}/${ICTDIR} \
+    -1 /var/log/ict_chat-ixi.log \
+    -b -m --pidfile \${pidfile} \
+    --exec \${command} \
+    -- \${command_args} "${ICTNAME}" "\${username}" "\${password}"
+
   eend \$?
 }
 
@@ -461,6 +464,7 @@ stop() {
 }
 EOF
 		chmod u+x /etc/init.d/ict_chat-ixi
+		touch /var/log/ict_chat-ixi.log && chown ict /var/log/ict_chat-ixi.log
 		echo "### ict_chat-ixi daemon installed, but not started. Username: ${CHATUSER} Password:${RANDOMPASS}"
 
 		rc-update add ict_report-ixi
