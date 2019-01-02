@@ -13,7 +13,7 @@ In order to start chat.ixi run:
 Username and password are configured in `/home/ict/config/chat.ixi.cfg`.
 
 The option "Nick (ict-0)" is needed by Report.ixi. If not provided the install script will ask for it at a later point.
-The naming convention is: "<name> (ict-<number>)"
+The naming convention is: `"<name> (ict-<number>)"`
   where name is your nickname on discord
   and number is the number of your ict. 
 
