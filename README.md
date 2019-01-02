@@ -2,6 +2,7 @@
 Scripts for installing IOTA ICT (current omegan version) on linux.
 
 
+## BUILD install
 Run:
 
 `sudo ./install-ict.sh BUILD "<name> (ict-<number>)"`
@@ -17,6 +18,9 @@ The naming convention is: `"<name> (ict-<number>)"`
   where name is your nickname on discord
   and number is the number of your ict. 
 
+
+## RELEASE install
+Run:
 `sudo ./install-ict.sh RELEASE nodename`
 to download and run the latest binary release from github.
 
