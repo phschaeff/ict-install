@@ -321,8 +321,9 @@ Requires=ict.service
 After=ict.service
 
 [Service]
+EnvironmentFile=${ICTHOME}/config/chat.ixi.cfg
 ExecStartPre=while [ \$(netstat -nlpu | grep -c "^udp.*:$port") -eq 0 ] ; do sleep 1 ; done; sleep 10
-ExecStart=/usr/bin/java -jar ${ICTHOME}/${ICTDIR}/chat.ixi/chat.ixi-${CHAT_IXI_VERSION}.jar ${ICTNAME} ${CHATUSER} ${RANDOMPASS}
+ExecStart=/usr/bin/java -jar ${ICTHOME}/${ICTDIR}/chat.ixi/chat.ixi-${CHAT_IXI_VERSION}.jar ${ICTNAME} "\$username" "\$password"
 WorkingDirectory=${ICTHOME}/${ICTDIR}
 StandardOutput=inherit
 StandardError=inherit
@@ -431,7 +432,7 @@ EOF
 name="ict chat daemon"
 description="IOTA ict node chat ixi"
 command="/usr/bin/java"
-command_args="-jar ${ICTHOME}/${ICTDIR}/chat.ixi/chat.ixi-${CHAT_IXI_VERSION}.jar ${ICTNAME} ${CHATUSER} ${RANDOMPASS}"
+command_args="-jar ${ICTHOME}/${ICTDIR}/chat.ixi/chat.ixi-${CHAT_IXI_VERSION}.jar ${ICTNAME} \$(sed -ne \\"s/^username=\(.*\)$/\1/gp\\" ${ICTHOME}/config/chat.ixi.cfg) \$(sed -ne \\"s/^password=\(.*\)$/\1/gp\\" ${ICTHOME}/config/chat.ixi.cfg)"
 pidfile=/var/run/ict_chat-ixi.pid
 
 depend() {
