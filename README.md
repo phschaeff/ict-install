@@ -36,6 +36,16 @@ Tested on:
 
 Some common errors encountered when starting ict.
 
+### Error starting Report.ixi
+If the ict_report-ixi-service starts with the following error:
+
+`INFO  [main/ReportIxi]   Can't connect to Ict 'ict'. Make sure that the Ict Client is running. Check 'ictName' in report.ixi.cfg and 'ixi_enabled=true' in ict.cfg.`
+
+the solution may be simply restarting the services, as in (as root):
+
+`systemctl stop ict_report-ixi.service ; systemctl restart ict ; sleep 1; systemctl start ict_report-ixi.service ;  journalctl -f _UID=$(id -u ict)`
+
+
 ### UnknownHostException
 
 This error is usually due to an invalid entry in the `ict.properties` file.
@@ -45,19 +55,6 @@ is not a valid hostname.
 Make sure you only use valid hostnames or ip addresses.
 
 Sometimes this error is caused by trailing white spaces in the hostname.
-
-Example of a valid file:
-
-```
-host = 0.0.0.0
-port = 14265
-neighborAHost = 127.0.0.1
-neighborAPort = 14265
-neighborBHost = 127.0.0.2
-neighborBPort = 14265
-neighborCHost = 127.0.0.3
-neighborCPort = 14265
-```
 
 ### BindException
 
@@ -75,11 +72,6 @@ While ICT is running the internal representation of the ICT tangle keeps growing
 (Local snapshots have not been implemented, yet.)
 You can avoid this error by restarting ICT on a regular basis.
 
-If you run ICT as a systemd service, run
-`sudo crontab -e`
-and add
-`2 22 * * * systemctl restart ict`
-to your crontab to restart ICT at 2:22am every night.
 
 ### Multiple IP addresses
 
