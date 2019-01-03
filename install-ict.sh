@@ -267,7 +267,7 @@ cp -f ict.cfg ${ICTHOME}/config/ict.cfg
 chown -R ict ${ICTHOME}/config ${ICTHOME}/${ICTDIR}
 
 echo "### Configuring system services"
-if [ $(systemctl is-active --quiet dbus 2>/dev/null; echo $?) -eq 0 ] ; then
+if [ $(systemctl is-active --quiet init.scope 2>/dev/null; echo $?) -eq 0 ] ; then
 	echo "### systemd"
 	cat <<EOF > /lib/systemd/system/ict.service
 	[Unit]
@@ -302,7 +302,7 @@ Requires=ict.service
 After=ict.service
 
 [Service]
-ExecStartPre=while [ \$(netstat -nlpu | grep -c "^udp.*:$port") -eq 0 ] ; do sleep 1 ; done; sleep 10
+ExecStartPre=/bin/sh -c "while [ \$(netstat -nlpu | grep -c "^udp.*:$port") -eq 0 ] ; do sleep 1 ; done; sleep 10"
 ExecStart=/usr/bin/java -jar ${ICTHOME}/${ICTDIR}/Report.ixi/report.ixi-${REPORT_IXI_VERSION}.jar ${ICTHOME}/config/report.ixi.cfg
 WorkingDirectory=${ICTHOME}/${ICTDIR}
 StandardOutput=inherit
@@ -322,7 +322,7 @@ After=ict.service
 
 [Service]
 EnvironmentFile=${ICTHOME}/config/chat.ixi.cfg
-ExecStartPre=while [ \$(netstat -nlpu | grep -c "^udp.*:$port") -eq 0 ] ; do sleep 1 ; done; sleep 10
+ExecStartPre=/bin/sh -c "while [ \$(netstat -nlpu | grep -c "^udp.*:$port") -eq 0 ] ; do sleep 1 ; done; sleep 10"
 ExecStart=/usr/bin/java -jar ${ICTHOME}/${ICTDIR}/chat.ixi/chat.ixi-${CHAT_IXI_VERSION}.jar ${ICTNAME} "\$username" "\$password"
 WorkingDirectory=${ICTHOME}/${ICTDIR}
 StandardOutput=inherit
