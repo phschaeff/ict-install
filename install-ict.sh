@@ -77,8 +77,8 @@ if [ "$1" = "BUILD" ]; then
 	rm -f *.jar
 	#echo "org.gradle.java.home=/usr/java/jdk1.8.0_192-amd64" > gradle.properties
 	gradle fatJar || exit "BUILD did not work. Try ./$0 RELEASE [NODENAME]"
-	VERSION=`ls *.jar | sed -e 's/ict-\(.*\)\.jar/\1/'`
-	echo "### Done building ICT $VERSION"
+	VERSION=`ls *.jar | sed -e 's/ict\(.*\)\.jar/\1/'`
+	echo "### Done building ICT$VERSION"
 	
 	echo "### Pulling and building Report.ixi source"
 	if [ -d ${ICTHOME}/${ICTDIR}/Report.ixi/.git ]; then
@@ -93,8 +93,8 @@ if [ "$1" = "BUILD" ]; then
 	rm -f *.jar
 	#echo "org.gradle.java.home=/usr/java/jdk1.8.0_192-amd64" > gradle.properties
 	gradle fatJar
-	REPORT_IXI_VERSION=`ls *.jar | sed -e 's/report.ixi-\(.*\)\.jar/\1/'`
-	echo "### Done building Report.ixi $REPORT_IXI_VERSION"
+	REPORT_IXI_VERSION=`ls *.jar | sed -e 's/report.ixi\(.*\)\.jar/\1/'`
+	echo "### Done building Report.ixi$REPORT_IXI_VERSION"
 	
 	echo "### Pulling and building Chat.ixi source"
 	cd ${ICTHOME}/${ICTDIR}
@@ -110,8 +110,8 @@ if [ "$1" = "BUILD" ]; then
 	rm -f *.jar
 	#echo "org.gradle.java.home=/usr/java/jdk1.8.0_192-amd64" > gradle.properties
 	gradle fatJar
-	CHAT_IXI_VERSION=`ls *.jar | sed -e 's/chat.ixi-\(.*\)\.jar/\1/'`
-	echo "### Done building Chat.ixi $CHAT_IXI_VERSION"
+	CHAT_IXI_VERSION=`ls *.jar | sed -e 's/chat.ixi\(.*\)\.jar/\1/'`
+	echo "### Done building Chat.ixi$CHAT_IXI_VERSION"
 fi
 
 if [ "$1" = "RELEASE" ]; then
@@ -137,25 +137,24 @@ if [ "$1" = "RELEASE" ]; then
 			rm -f *.jar
 			wget https://github.com/iotaledger/ict/releases/download/${VERSION}/ict-${VERSION}.jar
 	fi
-	echo "### Done downloading ICT $VERSION"
+	VERSION="-${VERSION}"
+	echo "### Done downloading ICT$VERSION"
 fi
 
 echo "### Preparing directories, run script, and configs"
 cat <<EOF > ${ICTHOME}/run-ict.sh
 #!/bin/sh
 cd ${ICTHOME}/${ICTDIR}
-java -jar ${ICTHOME}/${ICTDIR}/ict/ict-${VERSION}.jar -c ${ICTHOME}/config/ict.cfg
+java -jar ${ICTHOME}/${ICTDIR}/ict/ict${VERSION}.jar -c ${ICTHOME}/config/ict.cfg
 EOF
-
 chmod a+x ${ICTHOME}/run-ict.sh
-
 
 mkdir -p ${ICTHOME}/config
 
 echo "### Creating default ict.cfg template"
 cd ${ICTHOME}/${ICTDIR}
 rm -f ict.cfg
-java -jar ${ICTHOME}/${ICTDIR}/ict/ict-${VERSION}.jar &
+java -jar ${ICTHOME}/${ICTDIR}/ict/ict${VERSION}.jar --config-create &
 last_pid=$!
 while [ ! -f ict.cfg ] ; do sleep 1 ; done
 sleep 1
@@ -183,11 +182,11 @@ if [ "$1" = "BUILD" ]; then
 	cat <<EOF > ${ICTHOME}/run-ict.sh
 #!/bin/sh
 cd ${ICTHOME}/${ICTDIR}
-java -jar ${ICTHOME}/${ICTDIR}/ict/ict-${VERSION}.jar -c ${ICTHOME}/config/ict.cfg &
+java -jar ${ICTHOME}/${ICTDIR}/ict/ict${VERSION}.jar -c ${ICTHOME}/config/ict.cfg &
 ict_pid=\$!
 echo \$ict_pid > ict.pid
 sleep 30
-java -jar ${ICTHOME}/${ICTDIR}/Report.ixi/report.ixi-${REPORT_IXI_VERSION}.jar ${ICTHOME}/config/report.ixi.cfg &
+java -jar ${ICTHOME}/${ICTDIR}/Report.ixi/report.ixi${REPORT_IXI_VERSION}.jar ${ICTHOME}/config/report.ixi.cfg &
 report_ixi_pid=\$!
 echo \$report_ixi_pid > report_ixi.pid
 EOF
@@ -201,7 +200,7 @@ EOF
 	cd ${ICTHOME}/${ICTDIR}
 	echo "### Creating default report.ixi.cfg template"
 	rm -f report.ixi.cfg
-	java -jar ${ICTHOME}/${ICTDIR}/Report.ixi/report.ixi-${REPORT_IXI_VERSION}.jar &
+	java -jar ${ICTHOME}/${ICTDIR}/Report.ixi/report.ixi${REPORT_IXI_VERSION}.jar &
 	last_pid=$!
 	while [ ! -f report.ixi.cfg ] ; do sleep 1 ; done
 	kill -KILL $last_pid 2>/dev/null 1>/dev/null
@@ -274,7 +273,7 @@ if [ $(systemctl is-active --quiet init.scope 2>/dev/null; echo $?) -eq 0 ] ; th
 	Description=IOTA ICT
 	After=network.target
 	[Service]
-	ExecStart=/usr/bin/java -jar ${ICTHOME}/${ICTDIR}/ict/ict-${VERSION}.jar -c ${ICTHOME}/config/ict.cfg
+	ExecStart=/usr/bin/java -jar ${ICTHOME}/${ICTDIR}/ict/ict${VERSION}.jar -c ${ICTHOME}/config/ict.cfg
 	WorkingDirectory=${ICTHOME}/${ICTDIR}
 	StandardOutput=inherit
 	StandardError=inherit
@@ -303,7 +302,7 @@ After=ict.service
 
 [Service]
 ExecStartPre=/bin/sh -c "while [ \$(netstat -nlpu | grep -c "^udp.*:$port") -eq 0 ] ; do sleep 1 ; done; sleep 10"
-ExecStart=/usr/bin/java -jar ${ICTHOME}/${ICTDIR}/Report.ixi/report.ixi-${REPORT_IXI_VERSION}.jar ${ICTHOME}/config/report.ixi.cfg
+ExecStart=/usr/bin/java -jar ${ICTHOME}/${ICTDIR}/Report.ixi/report.ixi${REPORT_IXI_VERSION}.jar ${ICTHOME}/config/report.ixi.cfg
 WorkingDirectory=${ICTHOME}/${ICTDIR}
 StandardOutput=inherit
 StandardError=inherit
@@ -323,7 +322,7 @@ After=ict.service
 [Service]
 EnvironmentFile=${ICTHOME}/config/chat.ixi.cfg
 ExecStartPre=/bin/sh -c "while [ \$(netstat -nlpu | grep -c "^udp.*:$port") -eq 0 ] ; do sleep 1 ; done; sleep 10"
-ExecStart=/usr/bin/java -jar ${ICTHOME}/${ICTDIR}/chat.ixi/chat.ixi-${CHAT_IXI_VERSION}.jar ${ICTNAME} "\$username" "\$password"
+ExecStart=/usr/bin/java -jar ${ICTHOME}/${ICTDIR}/chat.ixi/chat.ixi${CHAT_IXI_VERSION}.jar ${ICTNAME} "\$username" "\$password"
 WorkingDirectory=${ICTHOME}/${ICTDIR}
 StandardOutput=inherit
 StandardError=inherit
@@ -396,7 +395,7 @@ EOF
 name="ict report daemon"
 description="IOTA ict node report ixi"
 command="/usr/bin/java"
-command_args="-jar ${ICTHOME}/${ICTDIR}/Report.ixi/report.ixi-${REPORT_IXI_VERSION}.jar ${ICTHOME}/config/report.ixi.cfg"
+command_args="-jar ${ICTHOME}/${ICTDIR}/Report.ixi/report.ixi${REPORT_IXI_VERSION}.jar ${ICTHOME}/config/report.ixi.cfg"
 pidfile=/var/run/ict_report-ixi.pid
 
 depend() {
