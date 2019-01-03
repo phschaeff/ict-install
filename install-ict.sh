@@ -140,7 +140,7 @@ if [ "$1" = "RELEASE" ]; then
 	VERSION="-${VERSION}"
 	echo "### Done downloading ICT$VERSION"
 	cd ${ICTHOME}/${ICTDIR}
-	REPORT_IXI_VERSION=`curl --silent "https://api.github.com/repos/${GITREPO}/releases" | grep '"tag_name":' |head -1 | sed -E 's/.*"([^"]+)".*/\1/'`
+	REPORT_IXI_VERSION=`curl --silent "https://api.github.com/repos/trifel/Report.ixi/releases" | grep '"tag_name":' |head -1 | sed -E 's/.*"([^"]+)".*/\1/'`
 	if [ ! -f Report.ixi/report.ixi-${REPORT_IXI_VERSION}.jar ]; then
 			mkdir Report.ixi
 			cd Report.ixi
