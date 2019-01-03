@@ -129,7 +129,7 @@ if [ "$1" = "RELEASE" ]; then
 			;;
 		esac
 	fi
-
+	cd ${ICTHOME}/${ICTDIR}
 	VERSION=`curl --silent "https://api.github.com/repos/${GITREPO}/releases" | grep '"tag_name":' |head -1 | sed -E 's/.*"([^"]+)".*/\1/'`
 	if [ ! -f ict/ict-${VERSION}.jar ]; then
 			mkdir ict
@@ -139,15 +139,30 @@ if [ "$1" = "RELEASE" ]; then
 	fi
 	VERSION="-${VERSION}"
 	echo "### Done downloading ICT$VERSION"
+	cd ${ICTHOME}/${ICTDIR}
+	REPORT_IXI_VERSION=`curl --silent "https://api.github.com/repos/${GITREPO}/releases" | grep '"tag_name":' |head -1 | sed -E 's/.*"([^"]+)".*/\1/'`
+	if [ ! -f Report.ixi/report.ixi-${REPORT_IXI_VERSION}.jar ]; then
+			mkdir Report.ixi
+			cd Report.ixi
+			rm -f *.jar
+			wget https://github.com/trifel/Report.ixi/releases/download/${REPORT_IXI_VERSION}/report.ixi-${REPORT_IXI_VERSION}.jar
+	fi
+	REPORT_IXI_VERSION="-${REPORT_IXI_VERSION}"
+	echo "### Done downloading Report.ixi$REPORT_IXI_VERSION"
+	cd ${ICTHOME}/${ICTDIR}
+	CHAT_IXI_VERSION=`curl --silent "https://api.github.com/repos/iotaledger/chat.ixi/releases" | grep '"tag_name":' |head -1 | sed -E 's/.*"([^"]+)".*/\1/'`
+	if [ ! -f chat.ixi/chat.ixi-${CHAT_IXI_VERSION}.jar ]; then
+			mkdir chat.ixi
+			cd chat.ixi
+			rm -f *.jar
+			wget https://github.com/iotaledger/chat.ixi/releases/download/${CHAT_IXI_VERSION}/chat.ixi-${CHAT_IXI_VERSION}.zip
+			unzip chat.ixi-${CHAT_IXI_VERSION}.zip
+	fi
+	CHAT_IXI_VERSION="-${CHAT_IXI_VERSION}"
+	echo "### Done downloading Chat.ixi$CHAT_IXI_VERSION"
 fi
 
 echo "### Preparing directories, run script, and configs"
-cat <<EOF > ${ICTHOME}/run-ict.sh
-#!/bin/sh
-cd ${ICTHOME}/${ICTDIR}
-java -jar ${ICTHOME}/${ICTDIR}/ict/ict${VERSION}.jar -c ${ICTHOME}/config/ict.cfg
-EOF
-chmod a+x ${ICTHOME}/run-ict.sh
 
 mkdir -p ${ICTHOME}/config
 
@@ -177,8 +192,8 @@ else
 	done
 fi
 
-if [ "$1" = "BUILD" ]; then
-	echo "### Adapting run script and configs for Report.ixi"
+if [ /bin/true ]; then
+	echo "### Adapting run script and configs for IXIs"
 	cat <<EOF > ${ICTHOME}/run-ict.sh
 #!/bin/sh
 cd ${ICTHOME}/${ICTDIR}
@@ -292,7 +307,7 @@ EOF
 	grep "systemctl restart ict" /var/spool/cron/crontabs/root && sed -i 's/^.*systemctl restart ict.*$//' /var/spool/cron/crontabs/root
 	grep "systemctl restart ict" /etc/crontab && sed -i 's/^.*systemctl restart ict.*$//' /etc/crontab
 
-	if [ "$1" = "BUILD" ]; then
+	if [ /bin/true ]; then
 		port=`sed -ne 's/^port\s*=\s*//gp' ${ICTHOME}/config/ict.properties`
 		cat <<EOF > /lib/systemd/system/ict_report-ixi.service
 [Unit]

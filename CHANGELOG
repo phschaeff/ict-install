@@ -1,6 +1,7 @@
 
 2019-01-03:
 - Adapted to ici-0.4-snapshot
+- Added install of Report.ixi and chat.ixi to RELEASE branch
 
 2019-01-02:
 - Adapted to report.ixi 0.2
