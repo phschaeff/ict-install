@@ -32,7 +32,7 @@ if [ "$1" = "BUILD" ]; then
 	echo "### Installing dependencies for BUILD" 
 	case "$PKGMANAGER" in
 	*apt-get* )
-		${PKGMANAGER} install -y git gnupg dirmngr gradle net-tools
+		${PKGMANAGER} install -y git gnupg dirmngr gradle unzip net-tools
 		version=$(javac -version 2>&1)
 		if [ "$version" != "javac 1.8.0_191" ] ; then 
 			grep "^deb .*webupd8team" /etc/apt/sources.list || echo "deb http://ppa.launchpad.net/webupd8team/java/ubuntu trusty main" >> /etc/apt/sources.list
@@ -366,7 +366,7 @@ elif [ -f /sbin/openrc-run ] ; then
 name="ict daemon"
 description="IOTA ict node"
 command="/usr/bin/java"
-command_args="-jar /home/ict/omega-ict/ict/ict-0.4-SNAPSHOT.jar -c /home/ict/config/ict.cfg"
+command_args="-jar ${ICTHOME}/${ICTDIR}/ict/ict${VERSION}.jar -c ${ICTHOME}/config/ict.cfg"
 pidfile=/var/run/ict.pid
 
 depend() {
