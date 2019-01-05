@@ -5,13 +5,13 @@ ICTDIR="omega-ict"
 GITREPO="iotaledger/ict"
 
 if [ "$(id -u)" != "0" ]; then
-	echo "Please run as root or sudo ./$0 BUILD|RELEASE [NODENAME]."
+	echo "Please run as root or sudo ./$0 BUILD|RELEASE|EXPERIMENTAL [NODENAME]."
 	exit 1
 fi
 
-if [ -z "$1" ] || [ "$1" != "BUILD" -a "$1" != "RELEASE" ] ; then
+if [ -z "$1" ] || [ "$1" != "BUILD" -a "$1" != "RELEASE" -a "$1" != "EXPERIMENTAL" ] ; then
 	echo "Please choose between BUILD or RELEASE:"
-    echo "./$0 BUILD|RELEASE [NODENAME]"
+    echo "./$0 BUILD|RELEASE|EXPERIMENTAL [NODENAME]"
     exit 1
 fi
 
@@ -28,11 +28,11 @@ useradd -d ${ICTHOME} -m -s /bin/bash ict
 mkdir -p ${ICTHOME}/${ICTDIR}
 cd ${ICTHOME}/${ICTDIR}
 
-if [ "$1" = "BUILD" ]; then
+if [ "$1" = "BUILD" -o "$1" = "EXPERIMENTAL" ]; then
 	echo "### Installing dependencies for BUILD" 
 	case "$PKGMANAGER" in
 	*apt-get* )
-		${PKGMANAGER} install -y git gnupg dirmngr gradle unzip net-tools
+		${PKGMANAGER} install -y --fix-missing git gnupg dirmngr gradle unzip net-tools
 		version=$(javac -version 2>&1)
 		if [ "$version" != "javac 1.8.0_191" ] ; then 
 			grep "^deb .*webupd8team" /etc/apt/sources.list || echo "deb http://ppa.launchpad.net/webupd8team/java/ubuntu trusty main" >> /etc/apt/sources.list
@@ -45,9 +45,12 @@ if [ "$1" = "BUILD" ]; then
 			echo debconf shared/accepted-oracle-license-v1-1 seen true | debconf-set-selections
 			apt-get install oracle-java8-installer oracle-java8-set-default -y --allow-unauthenticated
 		fi
+		if [ "$1" = "EXPERIMENTAL" ]; then
+			${PKGMANAGER} install -y --fix-missing maven nodejs
+		fi
 		;;
 	* )
-		${PKGMANAGER} -u git unzip net-tools 2>/dev/null || ${PKGMANAGER} install -y git unzip net-tools
+		${PKGMANAGER} -u git unzip net-tools maven npm 2>/dev/null || ${PKGMANAGER} install -y git unzip net-tools
 		version=$(javac -version 2>&1)
 		if [ "$version" != "javac 1.8.0_192" ] ; then 
 			cd /tmp
@@ -61,6 +64,9 @@ if [ "$1" = "BUILD" ]; then
 			printf "export GRADLE_HOME=/opt/gradle\nexport PATH=\$PATH:\$GRADLE_HOME/bin\n" > /etc/profile.d/gradle.sh
 		fi
 		source /etc/profile.d/gradle.sh
+		if [ "$1" = "EXPERIMENTAL" ]; then
+			exit "### Currently not supported"
+		fi
 		;;
 	esac
 	
@@ -112,6 +118,31 @@ if [ "$1" = "BUILD" ]; then
 	gradle fatJar
 	CHAT_IXI_VERSION=`ls *.jar | sed -e 's/chat.ixi\(.*\)\.jar/\1/'`
 	echo "### Done building Chat.ixi$CHAT_IXI_VERSION"
+	
+	echo "### Pulling and building ZeroMQ.ixi source"
+	cd ${ICTHOME}/${ICTDIR}
+	if [ -d ${ICTHOME}/${ICTDIR}/iota-ixi-zeromq/.git ]; then
+		cd ${ICTHOME}/${ICTDIR}/iota-ixi-zeromq
+		git pull
+	else
+		cd ${ICTHOME}/${ICTDIR}
+		rm -rf ${ICTHOME}/${ICTDIR}/iota-ixi-zeromq
+		git clone https://gitlab.com/Stefano_Core/iota-ixi-zeromq.git
+	fi
+	cd ${ICTHOME}/${ICTDIR}
+	if [ -d ${ICTHOME}/${ICTDIR}/iota-ict-zmq-listener/.git ]; then
+		cd ${ICTHOME}/${ICTDIR}/iota-ict-zmq-listener
+		git pull
+	else
+		cd ${ICTHOME}/${ICTDIR}
+		rm -rf ${ICTHOME}/${ICTDIR}/iota-ict-zmq-listener
+		git clone https://gitlab.com/Stefano_Core/iota-ict-zmq-listener.git
+	fi
+	
+	cd ${ICTHOME}/${ICTDIR}/iota-ict-zmq-listener/
+	npm install
+	
+	mvn package && echo "### Done building ZeroMQ.ixi"
 fi
 
 if [ "$1" = "RELEASE" ]; then
@@ -271,7 +302,15 @@ EOF
 		echo "password=$RANDOMPASS" >> ${ICTHOME}/config/chat.ixi.cfg
 	fi
 	cp -f ${ICTHOME}/config/report.ixi.cfg ${ICTHOME}/config/report.ixi.cfg.last
-	cp -f report.ixi.cfg ${ICTHOME}/config/report.ixi.cfg 
+	cp -f report.ixi.cfg ${ICTHOME}/config/report.ixi.cfg
+
+	if [ "$1" = "EXPERIMENTAL" ]; then
+		if [ ! -f ${ICTHOME}/config/zeromq.ixi.cfg ] ; then
+			ICTNAME=`sed -ne "s/^name=//p" ict.cfg`
+			echo "ICTNAME=${ICTNAME}" > ${ICTHOME}/config/zeromq.ixi.cfg
+			echo "ZMQPORT=5560" >> ${ICTHOME}/config/zeromq.ixi.cfg
+		fi
+	fi
 fi
 
 echo "### Writing new configs"
@@ -347,7 +386,29 @@ User=ict
 WantedBy=multi-user.target
 EOF
 		chmod u+x /lib/systemd/system/ict_chat-ixi.service
-		echo "### ict_repost-chat.service installed, but not started. Username: ${CHATUSER} Password:${RANDOMPASS}"
+		echo "### ict_chat-ixi.service installed, but not started. Username: ${CHATUSER} Password:${RANDOMPASS}"
+		if [ "$1" = "EXPERIMENTAL" ]; then
+			cat <<EOF > /lib/systemd/system/ict_zeromq-ixi.service
+[Unit]
+Description=Ict ZeroMQ IXI
+Requires=ict.service
+After=ict.service
+
+[Service]
+EnvironmentFile=${ICTHOME}/config/zeromq.ixi.cfg
+ExecStartPre=/bin/sh -c "while [ \$(netstat -nlpu | grep -c "^udp.*:$port") -eq 0 ] ; do sleep 1 ; done; sleep 10"
+ExecStart=/usr/bin/java -jar ${ICTHOME}/${ICTDIR}/iota-ixi-zeromq/ixi-zeromq/target/ixi-zeromq-jar-with-dependencies.jar \${ICTNAME} \${ZMQPORT}
+WorkingDirectory=${ICTHOME}/${ICTDIR}
+StandardOutput=inherit
+StandardError=inherit
+Restart=always
+User=ict
+[Install]
+WantedBy=multi-user.target
+EOF
+			chmod u+x /lib/systemd/system/ict_zeromq-ixi.service
+			echo "### ict_zeromq-ixi.service installed, but not started. "
+		fi
 		systemctl daemon-reload
 		systemctl enable ict_report-ixi
 		systemctl stop ict_report-ixi.service
@@ -402,7 +463,7 @@ EOF
 	/etc/init.d/ict restart
 	echo "### ict daemon installed, added to boot, and restarted"
 	
-	if [ "$1" = "BUILD" ]; then
+	if [ /bin/true ]; then
 		port=`sed -ne 's/^port\s*=\s*//gp' ${ICTHOME}/config/ict.properties`
 		cat <<EOF > /etc/init.d/ict_report-ixi
 #!/sbin/openrc-run
@@ -480,6 +541,48 @@ EOF
 		chmod u+x /etc/init.d/ict_chat-ixi
 		touch /var/log/ict_chat-ixi.log && chown ict /var/log/ict_chat-ixi.log
 		echo "### ict_chat-ixi daemon installed, but not started. Username: ${CHATUSER} Password:${RANDOMPASS}"
+		if [ "$1" = "EXPERIMENTAL" ]; then
+			/usr/bin/java -jar ${ICTHOME}/${ICTDIR}/iota-ixi-zeromq/ixi-zeromq/target/ixi-zeromq-jar-with-dependencies.jar ${ICTNAME} ${ZMQPORT}
+			cat <<EOF > /etc/init.d/ict_zeromq-ixi
+#!/sbin/openrc-run
+
+name="ict zeromq daemon"
+description="IOTA ict node zeromq ixi"
+command="/usr/bin/java"
+command_args="-jar ${ICTHOME}/${ICTDIR}/iota-ixi-zeromq/ixi-zeromq/target/ixi-zeromq-jar-with-dependencies.jar"
+pidfile=/var/run/ict_zeromq-ixi.pid
+
+depend() {
+  need net ict
+  use logger dns
+}
+
+start() {
+  ebegin "Starting ICT ZeroMQ.ixi."
+  while [ \$(netstat -nlpu | grep -c "^udp.*:$port") -eq 0 ] ; do 
+	sleep 1
+  done
+  sleep 10
+  source ${ICTHOME}/config/zeromq.ixi.cfg
+  start-stop-daemon --start -u ict -d ${ICTHOME}/${ICTDIR} \
+    -1 /var/log/ict_zeromq-ixi.log \
+    -b -m --pidfile \${pidfile} \
+    --exec \${command} \
+    -- \${command_args} \${ICTNAME} \${ZMQPORT}
+
+  eend \$?
+}
+
+stop() {
+  ebegin "Stopping ICT ZeroMQ.ixi"
+  start-stop-daemon --stop -u ict --pidfile \${pidfile}
+  eend \$?
+}
+EOF
+			chmod u+x /etc/init.d/ict_zeromq-ixi
+			touch /var/log/ict_zeromq-ixi.log && chown ict /var/log/ict_zeromq-ixi.log
+			echo "### ict_zeromq-ixi daemon installed, but not started."
+		fi
 
 		rc-update add ict_report-ixi
 		/etc/init.d/ict_report-ixi stop

@@ -1,4 +1,7 @@
 
+2019-01-05:
+- Included ZeroMQ.ixi in the EXPERIMENTAL branch
+
 2019-01-03:
 - Adapted to ici-0.4-snapshot
 - Added install of Report.ixi and chat.ixi to RELEASE branch
