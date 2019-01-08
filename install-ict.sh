@@ -160,16 +160,26 @@ fi
 
 if [ "$1" = "RELEASE" ]; then
 	echo "### Installing dependencies for RELEASE"
-	if [ -z `which java` ] ; then
+	version=$(javac -version 2>&1)
+	if [ "$version" != "javac 1.8.0_191" ] ; then
 		case "$PKGMANAGER" in
 		*apt-get* )
-			apt-get install -y default-jre-headless
+			grep "^deb .*webupd8team" /etc/apt/sources.list || echo "deb http://ppa.launchpad.net/webupd8team/java/ubuntu trusty main" >> /etc/apt/sources.list
+			grep "^deb-src .*webupd8team" /etc/apt/sources.list || echo "deb-src http://ppa.launchpad.net/webupd8team/java/ubuntu precise main" >> /etc/apt/sources.list
+			apt-key adv --keyserver keyserver.ubuntu.com --recv-keys C2518248EEA14886
+			apt-key adv --keyserver keyserver.ubuntu.com --recv-keys EEA14886
+			apt-get update
+			apt-get upgrade -y
+			echo debconf shared/accepted-oracle-license-v1-1 select true | debconf-set-selections
+			echo debconf shared/accepted-oracle-license-v1-1 seen true | debconf-set-selections
+			apt-get install oracle-java8-installer oracle-java8-set-default -y --allow-unauthenticated
 			;;
 		*emerge* )
 			emerge -u virtual/jre
 			;;
 		* )
-			${PKGMANAGER} install -y jre
+			cd /tmp
+			wget https://raw.githubusercontent.com/metalcated/scripts/master/install_java.sh -O -  | sed -e 's/^JAVA_TYPE="jre"/JAVA_TYPE="jdk"/' | sh
 			;;
 		esac
 	fi
