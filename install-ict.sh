@@ -188,7 +188,7 @@ if [ "$1" = "RELEASE" ]; then
 	if [ ! -f Report.ixi/report.ixi-${REPORT_IXI_VERSION}.jar ]; then
 			mkdir Report.ixi
 			cd Report.ixi
-			rm -f *.jar
+			rm -f *.jar *.zip
 			wget https://github.com/trifel/Report.ixi/releases/download/${REPORT_IXI_VERSION}/report.ixi-${REPORT_IXI_VERSION}.jar
 	fi
 	REPORT_IXI_VERSION="-${REPORT_IXI_VERSION}"
@@ -198,7 +198,7 @@ if [ "$1" = "RELEASE" ]; then
 	if [ ! -f chat.ixi/chat.ixi-${CHAT_IXI_VERSION}.jar ]; then
 			mkdir chat.ixi
 			cd chat.ixi
-			rm -f *.jar
+			rm -f *.jar *.zip
 			wget https://github.com/iotaledger/chat.ixi/releases/download/${CHAT_IXI_VERSION}/chat.ixi-${CHAT_IXI_VERSION}.zip
 			unzip chat.ixi-${CHAT_IXI_VERSION}.zip
 	fi

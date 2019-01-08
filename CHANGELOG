@@ -2,6 +2,7 @@
 2019-01-08:
 - Tiny fix when testing for systemd
 - Added ictmon to EXPERIMENTAL branch
+- Delete old ZIPs in the RELEASE branch
 
 2019-01-05:
 - Included ZeroMQ.ixi in the EXPERIMENTAL branch
