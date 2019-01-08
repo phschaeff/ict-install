@@ -46,7 +46,9 @@ if [ "$1" = "BUILD" -o "$1" = "EXPERIMENTAL" ]; then
 			apt-get install oracle-java8-installer oracle-java8-set-default -y --allow-unauthenticated
 		fi
 		if [ "$1" = "EXPERIMENTAL" ]; then
-			${PKGMANAGER} install -y --fix-missing maven nodejs
+			${PKGMANAGER} install -y --fix-missing maven nodejs libzmq3-dev pkg-config
+			curl https://sh.rustup.rs -sSf | sh -s -- -y 
+			source ~/.cargo/env || export PATH="/root/.cargo/bin:$PATH"
 		fi
 		;;
 	* )
@@ -123,6 +125,7 @@ if [ "$1" = "BUILD" -o "$1" = "EXPERIMENTAL" ]; then
 	cd ${ICTHOME}/${ICTDIR}
 	if [ -d ${ICTHOME}/${ICTDIR}/iota-ixi-zeromq/.git ]; then
 		cd ${ICTHOME}/${ICTDIR}/iota-ixi-zeromq
+		rm -rf ${ICTHOME}/${ICTDIR}/iota-ixi-zeromq/target
 		git pull
 	else
 		cd ${ICTHOME}/${ICTDIR}
@@ -138,11 +141,21 @@ if [ "$1" = "BUILD" -o "$1" = "EXPERIMENTAL" ]; then
 		rm -rf ${ICTHOME}/${ICTDIR}/iota-ict-zmq-listener
 		git clone https://gitlab.com/Stefano_Core/iota-ict-zmq-listener.git
 	fi
-	
 	cd ${ICTHOME}/${ICTDIR}/iota-ict-zmq-listener/
-	npm install
-	
-	mvn package && echo "### Done building ZeroMQ.ixi"
+	npm install && echo "### Done building ICT-ZMQ-Listener"
+
+	echo "### Pulling and building ictmon.ixi source"
+	cd ${ICTHOME}/${ICTDIR}
+	if [ -d ${ICTHOME}/${ICTDIR}/ictmon/.git ]; then
+		cd ${ICTHOME}/${ICTDIR}/ictmon
+		git pull
+	else
+		cd ${ICTHOME}/${ICTDIR}
+		rm -rf ${ICTHOME}/${ICTDIR}/ictmon
+		git clone https://github.com/Alex6323/ictmon.git
+	fi
+	cd ${ICTHOME}/${ICTDIR}/ictmon/ 
+	cargo build --release && echo "### Done building ictmon.ixi"
 fi
 
 if [ "$1" = "RELEASE" ]; then
@@ -320,7 +333,7 @@ cp -f ict.cfg ${ICTHOME}/config/ict.cfg
 chown -R ict ${ICTHOME}/config ${ICTHOME}/${ICTDIR}
 
 echo "### Configuring system services"
-if [ $(systemctl is-active --quiet init.scope 2>/dev/null; echo $?) -eq 0 ] ; then
+if [ $(systemctl is-active --quiet systemd-sysctl.service 2>/dev/null; echo $?) -eq 0 ] ; then
 	echo "### systemd"
 	cat <<EOF > /lib/systemd/system/ict.service
 	[Unit]
