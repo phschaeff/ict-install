@@ -20,7 +20,7 @@ echo "### Setting package manager to ${PKGMANAGER}"
 
 ${PKGMANAGER} update
 ${PKGMANAGER} upgrade -y
-${PKGMANAGER} -u curl wget 2>/dev/null || ${PKGMANAGER} install -y curl wget
+${PKGMANAGER} -u curl wget unzip 2>/dev/null || ${PKGMANAGER} install -y curl wget unzip
 
 echo "### Setting time, preparing user and directories"
 date --set="$(curl -v --insecure --silent https://google.com/ 2>&1 | grep -i "^< date" | sed -e 's/^< date: //i')"
@@ -32,7 +32,7 @@ if [ "$1" = "BUILD" -o "$1" = "EXPERIMENTAL" ]; then
 	echo "### Installing dependencies for BUILD" 
 	case "$PKGMANAGER" in
 	*apt-get* )
-		${PKGMANAGER} install -y --fix-missing git gnupg dirmngr gradle unzip net-tools
+		${PKGMANAGER} install -y --fix-missing git gnupg dirmngr gradle net-tools
 		version=$(javac -version 2>&1)
 		if [ "$version" != "javac 1.8.0_191" ] ; then 
 			grep "^deb .*webupd8team" /etc/apt/sources.list || echo "deb http://ppa.launchpad.net/webupd8team/java/ubuntu trusty main" >> /etc/apt/sources.list
@@ -52,7 +52,7 @@ if [ "$1" = "BUILD" -o "$1" = "EXPERIMENTAL" ]; then
 		fi
 		;;
 	* )
-		${PKGMANAGER} -u git unzip net-tools maven npm 2>/dev/null || ${PKGMANAGER} install -y git unzip net-tools
+		${PKGMANAGER} -u git net-tools maven npm 2>/dev/null || ${PKGMANAGER} install -y git net-tools
 		version=$(javac -version 2>&1)
 		if [ "$version" != "javac 1.8.0_192" ] ; then 
 			cd /tmp
@@ -189,7 +189,7 @@ if [ "$1" = "RELEASE" ]; then
 			mkdir ict
 			cd ict
 			rm -f *.jar
-			wget https://github.com/iotaledger/ict/releases/download/${VERSION}/ict-${VERSION}.jar
+			wget -c https://github.com/iotaledger/ict/releases/download/${VERSION}/ict-${VERSION}.jar
 	fi
 	VERSION="-${VERSION}"
 	echo "### Done downloading ICT$VERSION"
@@ -199,7 +199,7 @@ if [ "$1" = "RELEASE" ]; then
 			mkdir Report.ixi
 			cd Report.ixi
 			rm -f *.jar *.zip
-			wget https://github.com/trifel/Report.ixi/releases/download/${REPORT_IXI_VERSION}/report.ixi-${REPORT_IXI_VERSION}.jar
+			wget -c https://github.com/trifel/Report.ixi/releases/download/${REPORT_IXI_VERSION}/report.ixi-${REPORT_IXI_VERSION}.jar
 	fi
 	REPORT_IXI_VERSION="-${REPORT_IXI_VERSION}"
 	echo "### Done downloading Report.ixi$REPORT_IXI_VERSION"
@@ -209,8 +209,8 @@ if [ "$1" = "RELEASE" ]; then
 			mkdir chat.ixi
 			cd chat.ixi
 			rm -f *.jar *.zip
-			wget https://github.com/iotaledger/chat.ixi/releases/download/${CHAT_IXI_VERSION}/chat.ixi-${CHAT_IXI_VERSION}.zip
-			unzip chat.ixi-${CHAT_IXI_VERSION}.zip
+			wget -c https://github.com/iotaledger/chat.ixi/releases/download/${CHAT_IXI_VERSION}/chat.ixi-${CHAT_IXI_VERSION}.zip
+			unzip -o chat.ixi-${CHAT_IXI_VERSION}.zip
 	fi
 	CHAT_IXI_VERSION="-${CHAT_IXI_VERSION}"
 	echo "### Done downloading Chat.ixi$CHAT_IXI_VERSION"
