@@ -1,4 +1,11 @@
-2019-01-10_
+2019-01-14:
+- Adapted to ict 0.4
+  - installs report.ixi and chat.ixi in the new modules folder
+  - creates new config files at the new locations
+  - migrates information from "old" config files to the new config files
+  - creates links to the old locations (in /home/ict/config)
+
+2019-01-10:
 - Minor changes to unzip and wget options
 
 2019-01-09:

@@ -18,9 +18,9 @@ fi
 PKGMANAGER=$( command -v apt-get || command -v yum || command -v dnf || command -v emerge || command -v pkg ) || exit "Cannot find the appropriate package manager"
 echo "### Setting package manager to ${PKGMANAGER}"
 
-${PKGMANAGER} update
+${PKGMANAGER} update -y
 ${PKGMANAGER} upgrade -y
-${PKGMANAGER} -u curl wget unzip 2>/dev/null || ${PKGMANAGER} install -y curl wget unzip
+${PKGMANAGER} -u curl wget unzip nodejs 2>/dev/null || ${PKGMANAGER} install -y curl wget unzip nodejs
 
 echo "### Setting time, preparing user and directories"
 date --set="$(curl -v --insecure --silent https://google.com/ 2>&1 | grep -i "^< date" | sed -e 's/^< date: //i')"
@@ -46,7 +46,7 @@ if [ "$1" = "BUILD" -o "$1" = "EXPERIMENTAL" ]; then
 			apt-get install oracle-java8-installer oracle-java8-set-default -y --allow-unauthenticated
 		fi
 		if [ "$1" = "EXPERIMENTAL" ]; then
-			${PKGMANAGER} install -y --fix-missing maven nodejs libzmq3-dev pkg-config
+			${PKGMANAGER} install -y --fix-missing maven libzmq3-dev pkg-config
 			curl https://sh.rustup.rs -sSf | sh -s -- -y 
 			source ~/.cargo/env || export PATH="/root/.cargo/bin:$PATH"
 		fi
@@ -76,10 +76,13 @@ if [ "$1" = "BUILD" -o "$1" = "EXPERIMENTAL" ]; then
 	if [ -d ${ICTHOME}/${ICTDIR}/ict/.git ]; then
 		cd ${ICTHOME}/${ICTDIR}/ict
 		git pull
+		git branch dev
 	else
 		cd ${ICTHOME}/${ICTDIR}
 		rm -rf ict
 		git clone https://github.com/${GITREPO}
+		cd ict
+		git branch dev
 	fi
 	cd ${ICTHOME}/${ICTDIR}/ict
 	rm -f *.jar
@@ -92,10 +95,13 @@ if [ "$1" = "BUILD" -o "$1" = "EXPERIMENTAL" ]; then
 	if [ -d ${ICTHOME}/${ICTDIR}/Report.ixi/.git ]; then
 		cd ${ICTHOME}/${ICTDIR}/Report.ixi
 		git pull
+		git branch dev
 	else
 		cd ${ICTHOME}/${ICTDIR}
 		rm -rf ${ICTHOME}/${ICTDIR}/Report.ixi
 		git clone https://github.com/trifel/Report.ixi
+		cd Report.ixi
+		git branch dev
 	fi
 	cd ${ICTHOME}/${ICTDIR}/Report.ixi
 	rm -f *.jar
@@ -109,10 +115,13 @@ if [ "$1" = "BUILD" -o "$1" = "EXPERIMENTAL" ]; then
 	if [ -d ${ICTHOME}/${ICTDIR}/chat.ixi/.git ]; then
 		cd ${ICTHOME}/${ICTDIR}/chat.ixi
 		git pull
+		git branch dev
 	else
 		cd ${ICTHOME}/${ICTDIR}
 		rm -rf ${ICTHOME}/${ICTDIR}/chat.ixi
 		git clone https://github.com/iotaledger/chat.ixi
+		cd chat.ixi
+		git branch dev
 	fi
 	cd ${ICTHOME}/${ICTDIR}/chat.ixi
 	rm -f *.jar
@@ -121,41 +130,43 @@ if [ "$1" = "BUILD" -o "$1" = "EXPERIMENTAL" ]; then
 	CHAT_IXI_VERSION=`ls *.jar | sed -e 's/chat.ixi\(.*\)\.jar/\1/'`
 	echo "### Done building Chat.ixi$CHAT_IXI_VERSION"
 	
-	echo "### Pulling and building ZeroMQ.ixi source"
-	cd ${ICTHOME}/${ICTDIR}
-	if [ -d ${ICTHOME}/${ICTDIR}/iota-ixi-zeromq/.git ]; then
-		cd ${ICTHOME}/${ICTDIR}/iota-ixi-zeromq
-		rm -rf ${ICTHOME}/${ICTDIR}/iota-ixi-zeromq/target
-		git pull
-	else
+	if [ "$1" = "EXPERIMENTAL" ]; then
+		echo "### Pulling and building ZeroMQ.ixi source"
 		cd ${ICTHOME}/${ICTDIR}
-		rm -rf ${ICTHOME}/${ICTDIR}/iota-ixi-zeromq
-		git clone https://gitlab.com/Stefano_Core/iota-ixi-zeromq.git
-	fi
-	cd ${ICTHOME}/${ICTDIR}
-	if [ -d ${ICTHOME}/${ICTDIR}/iota-ict-zmq-listener/.git ]; then
-		cd ${ICTHOME}/${ICTDIR}/iota-ict-zmq-listener
-		git pull
-	else
+		if [ -d ${ICTHOME}/${ICTDIR}/iota-ixi-zeromq/.git ]; then
+			cd ${ICTHOME}/${ICTDIR}/iota-ixi-zeromq
+			rm -rf ${ICTHOME}/${ICTDIR}/iota-ixi-zeromq/target
+			git pull
+		else
+			cd ${ICTHOME}/${ICTDIR}
+			rm -rf ${ICTHOME}/${ICTDIR}/iota-ixi-zeromq
+			git clone https://gitlab.com/Stefano_Core/iota-ixi-zeromq.git
+		fi
 		cd ${ICTHOME}/${ICTDIR}
-		rm -rf ${ICTHOME}/${ICTDIR}/iota-ict-zmq-listener
-		git clone https://gitlab.com/Stefano_Core/iota-ict-zmq-listener.git
-	fi
-	cd ${ICTHOME}/${ICTDIR}/iota-ict-zmq-listener/
-	npm install && echo "### Done building ICT-ZMQ-Listener"
+		if [ -d ${ICTHOME}/${ICTDIR}/iota-ict-zmq-listener/.git ]; then
+			cd ${ICTHOME}/${ICTDIR}/iota-ict-zmq-listener
+			git pull
+		else
+			cd ${ICTHOME}/${ICTDIR}
+			rm -rf ${ICTHOME}/${ICTDIR}/iota-ict-zmq-listener
+			git clone https://gitlab.com/Stefano_Core/iota-ict-zmq-listener.git
+		fi
+		cd ${ICTHOME}/${ICTDIR}/iota-ict-zmq-listener/
+		npm install && echo "### Done building ICT-ZMQ-Listener"
 
-	echo "### Pulling and building ictmon.ixi source"
-	cd ${ICTHOME}/${ICTDIR}
-	if [ -d ${ICTHOME}/${ICTDIR}/ictmon/.git ]; then
-		cd ${ICTHOME}/${ICTDIR}/ictmon
-		git pull
-	else
+		echo "### Pulling and building ictmon.ixi source"
 		cd ${ICTHOME}/${ICTDIR}
-		rm -rf ${ICTHOME}/${ICTDIR}/ictmon
-		git clone https://github.com/Alex6323/ictmon.git
+		if [ -d ${ICTHOME}/${ICTDIR}/ictmon/.git ]; then
+			cd ${ICTHOME}/${ICTDIR}/ictmon
+			git pull
+		else
+			cd ${ICTHOME}/${ICTDIR}
+			rm -rf ${ICTHOME}/${ICTDIR}/ictmon
+			git clone https://github.com/Alex6323/ictmon.git
+		fi
+		cd ${ICTHOME}/${ICTDIR}/ictmon/ 
+		cargo build --release && echo "### Done building ictmon.ixi"
 	fi
-	cd ${ICTHOME}/${ICTDIR}/ictmon/ 
-	cargo build --release && echo "### Done building ictmon.ixi"
 fi
 
 if [ "$1" = "RELEASE" ]; then
@@ -245,6 +256,9 @@ else
 		cp -f ict.cfg ${ICTHOME}/config/ict.cfg
 	done
 fi
+echo "### Installing Node.js modules required by ICT"
+cd ${ICTHOME}/${ICTDIR}/web
+npm install
 
 if [ /bin/true ]; then
 	echo "### Adapting run script and configs for IXIs"
@@ -254,36 +268,25 @@ cd ${ICTHOME}/${ICTDIR}
 java -jar ${ICTHOME}/${ICTDIR}/ict/ict${VERSION}.jar -c ${ICTHOME}/config/ict.cfg &
 ict_pid=\$!
 echo \$ict_pid > ict.pid
-sleep 30
-java -jar ${ICTHOME}/${ICTDIR}/Report.ixi/report.ixi${REPORT_IXI_VERSION}.jar ${ICTHOME}/config/report.ixi.cfg &
-report_ixi_pid=\$!
-echo \$report_ixi_pid > report_ixi.pid
 EOF
 	cat <<EOF > ${ICTHOME}/stop-ict.sh
 #!/bin/sh
 cd ${ICTHOME}/${ICTDIR}
-kill \$(cat ${ICTHOME}/${ICTDIR}/report_ixi.pid)
 kill \$(cat ${ICTHOME}/${ICTDIR}/ict.pid)
 EOF
 	chmod a+x ${ICTHOME}/run-ict.sh ${ICTHOME}/stop-ict.sh
 	cd ${ICTHOME}/${ICTDIR}
+	cp -f ${ICTHOME}/${ICTDIR}/Report.ixi/report.ixi${REPORT_IXI_VERSION}.jar ${ICTHOME}/${ICTDIR}/modules/report.ixi${REPORT_IXI_VERSION}.jar
 	echo "### Creating default report.ixi.cfg template"
-	rm -f report.ixi.cfg
-	java -jar ${ICTHOME}/${ICTDIR}/Report.ixi/report.ixi${REPORT_IXI_VERSION}.jar &
-	last_pid=$!
-	while [ ! -f report.ixi.cfg ] ; do sleep 1 ; done
-	kill -KILL $last_pid 2>/dev/null 1>/dev/null
-	sleep 1
+	echo "name=nick (ict-0)" > report.ixi.cfg
+	echo "neighbors=127.0.0.1\:1338" >> report.ixi.cfg
+	echo "reportPort=1338" >> report.ixi.cfg
 	echo "### Setting config neighbors in report.ixi.cfg"
-	#neighbors="`sed -ne "s/[,:]/ /g;s/^neighbors=//p" ict.cfg`"
-	#sed -i "s/^neighborAHost=.*$/neighborAHost=`echo $neighbors | cut -f1 -d" "`/" report.ixi.cfg
-	#sed -i "s/^neighborBHost=.*$/neighborBHost=`echo $neighbors | cut -f3 -d" "`/" report.ixi.cfg
-	#sed -i "s/^neighborCHost=.*$/neighborCHost=`echo $neighbors | cut -f5 -d" "`/" report.ixi.cfg
 	neighbors=`sed -ne 's/:[[:digit:]]\+/:1338/g;s/^neighbors\s*=\s*//gp' ict.cfg`
 	sed -i "s/^neighbors=.*$/neighbors=$neighbors/" report.ixi.cfg
 
-	if [ -f ${ICTHOME}/config/report.ixi.cfg ]; then
-		echo "### Importing from existing report.ixi.cfg"
+	if [ -f ${ICTHOME}/config/report.ixi.cfg -a ! -h ${ICTHOME}/config/report.ixi.cfg ]; then
+		echo "### Importing from old report.ixi.cfg"
 		grep -v "^#" ${ICTHOME}/config/report.ixi.cfg | while IFS="=" read -r varname value ; do
 			echo "### Setting config $varname to ${value} in report.ixi.cfg"
 			sed -i "s/^$varname=.*$/$varname=$value/" report.ixi.cfg
@@ -294,11 +297,16 @@ EOF
 			sed -i "s/^neighbors=.*$/neighbors=$neighbors/" report.ixi.cfg
 		fi 
 		sed -i "/^neighbor[A|B|C][Host|Port]/d" report.ixi.cfg
+		rm -f ${ICTHOME}/config/report.ixi.cfg
 	fi
-	ICTNAME=`sed -ne "s/^name=//p" ict.cfg`
-	echo "### Setting config ictName to ${ICTNAME} in report.ixi.cfg"
-	sed -i "s/^ictName=.*$/ictName=$ICTNAME/" report.ixi.cfg
-		
+	if [ -f ${ICTHOME}/${ICTDIR}/modules/report.ixi/report.ixi.cfg ]; then
+		cp -f ${ICTHOME}/${ICTDIR}/modules/report.ixi/report.ixi.cfg ${ICTHOME}/${ICTDIR}/modules/report.ixi/report.ixi.cfg.last
+		echo "### Importing from existing report.ixi.cfg"
+		grep -v "^#" ${ICTHOME}/${ICTDIR}/modules/report.ixi/report.ixi.cfg | while IFS="=" read -r varname value ; do
+			echo "### Setting config $varname to ${value} in report.ixi.cfg"
+			sed -i "s/^$varname=.*$/$varname=$value/" report.ixi.cfg
+		done
+	fi
 	if [ -n "$2" ] ; then
 		echo "### Setting nodename of the node to $2"
 		sed -i "s/^name=.*$/name=$2/" report.ixi.cfg
@@ -312,27 +320,41 @@ EOF
 		sed -i "s/^name=.*$/name=$nodename/" report.ixi.cfg
 	fi
 
-	sed -i "s/^ixi_enabled=.*$/ixi_enabled=true/" ict.cfg
-	if [ -f ${ICTHOME}/config/chat.ixi.cfg ] ; then
+	mkdir -p ${ICTHOME}/${ICTDIR}/modules/report.ixi
+	cp -f report.ixi.cfg ${ICTHOME}/${ICTDIR}/modules/report.ixi/report.ixi.cfg
+	ln -s ${ICTHOME}/${ICTDIR}/modules/report.ixi/report.ixi.cfg ${ICTHOME}/config/
+#	sed -i "s/^ixi_enabled=.*$/ixi_enabled=true/" ict.cfg
+	rm -f ${ICTHOME}/${ICTDIR}/modules/report.ixi*jar
+	cp -f ${ICTHOME}/${ICTDIR}/Report.ixi/report.ixi${REPORT_IXI_VERSION}.jar ${ICTHOME}/${ICTDIR}/modules/report.ixi${REPORT_IXI_VERSION}.jar
+	
+	if [ -f ${ICTHOME}/config/chat.ixi.cfg -a ! -h ${ICTHOME}/config/chat.ixi.cfg ] ; then
 		CHATUSER=`sed -ne "s/^username=\(.*\)$/\1/gp" ${ICTHOME}/config/chat.ixi.cfg`
 		RANDOMPASS=`sed -ne "s/^password=\(.*\)$/\1/gp" ${ICTHOME}/config/chat.ixi.cfg`
+		rm -f ${ICTHOME}/config/chat.ixi.cfg
+	elif [ -f ${ICTHOME}/${ICTDIR}/modules/chat.ixi/chat.ixi.cfg ] ; then
+		CHATUSER=`sed -ne "s/^username=\(.*\)$/\1/gp" ${ICTHOME}/${ICTDIR}/modules/chat.ixi/chat.ixi.cfg`
+		RANDOMPASS=`sed -ne "s/^password=\(.*\)$/\1/gp" ${ICTHOME}/${ICTDIR}/modules/chat.ixi/chat.ixi.cfg`	
 	else 
+		mkdir -p ${ICTHOME}/${ICTDIR}/modules/chat.ixi
 		CHATUSER=`sed -ne "s/^name=\(.*\) .*$/\1/p" report.ixi.cfg`
 		RANDOMPASS=`< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c12`
 		#read -e -p "Enter a password for Chat.ixi API:" -i "${CHATUSER}" CHATUSER
 		#read -e -p "Enter a password for Chat.ixi API:" -i "${RANDOMPASS}" RANDOMPASS
-		echo "username=$CHATUSER" > ${ICTHOME}/config/chat.ixi.cfg
-		echo "password=$RANDOMPASS" >> ${ICTHOME}/config/chat.ixi.cfg
+		echo "username=$CHATUSER" > ${ICTHOME}/${ICTDIR}/modules/chat.ixi/chat.ixi.cfg
+		echo "password=$RANDOMPASS" >> ${ICTHOME}/${ICTDIR}/modules/chat.ixi/chat.ixi.cfg
+		ln -s ${ICTHOME}/${ICTDIR}/modules/chat.ixi/chat.ixi.cfg ${ICTHOME}/config/
 	fi
-	cp -f ${ICTHOME}/config/report.ixi.cfg ${ICTHOME}/config/report.ixi.cfg.last
-	cp -f report.ixi.cfg ${ICTHOME}/config/report.ixi.cfg
-
+	rm -rf ${ICTHOME}/${ICTDIR}/modules/chat.ixi*jar
+	cp -f ${ICTHOME}/${ICTDIR}/chat.ixi/chat.ixi${CHAT_IXI_VERSION}.jar ${ICTHOME}/${ICTDIR}/modules/chat.ixi${CHAT_IXI_VERSION}.jar
+	
 	if [ "$1" = "EXPERIMENTAL" ]; then
-		if [ ! -f ${ICTHOME}/config/zeromq.ixi.cfg ] ; then
-			ICTNAME=`sed -ne "s/^name=//p" ict.cfg`
-			echo "ICTNAME=${ICTNAME}" > ${ICTHOME}/config/zeromq.ixi.cfg
-			echo "ZMQPORT=5560" >> ${ICTHOME}/config/zeromq.ixi.cfg
+		if [ ! -f ${ICTHOME}/${ICTDIR}/modules/zeromq.ixi/zeromq.ixi.cfg ] ; then
+			mkdir -p ${ICTHOME}/${ICTDIR}/modules/zeromq.ixi
+			echo "ZMQPORT=5560" > ${ICTHOME}/${ICTDIR}/modules/zeromq.ixi/zeromq.ixi.cfg
+			ln -s ${ICTHOME}/${ICTDIR}/modules/zeromq.ixi/zeromq.ixi.cfg ${ICTHOME}/config/
 		fi
+		rm -f ${ICTHOME}/${ICTDIR}/modules/ixi-zeromq*jar
+		cp -f ${ICTHOME}/${ICTDIR}/iota-ixi-zeromq/ixi-zeromq/target/ixi-zeromq-jar-with-dependencies.jar ${ICTHOME}/${ICTDIR}/modules/
 	fi
 fi
 
@@ -364,82 +386,16 @@ EOF
 	systemctl daemon-reload
 	systemctl enable ict
 	systemctl restart ict
-	echo "### ict.service installed, added to boot, and restarted"
 
-	grep "systemctl restart ict" /var/spool/cron/crontabs/root && sed -i 's/^.*systemctl restart ict.*$//' /var/spool/cron/crontabs/root
-	grep "systemctl restart ict" /etc/crontab && sed -i 's/^.*systemctl restart ict.*$//' /etc/crontab
+	for ixi in $(ls /lib/systemd/system/ict_* | rev | cut -f1 -d"/" | rev) ; do 
+		echo "### Removing old ${ixi} service"
+		systemctl stop ${ixi}
+		systemctl disable
+		rm -f /lib/systemd/system/ict_${ixi}
+	done
 
-	if [ /bin/true ]; then
-		port=`sed -ne 's/^port\s*=\s*//gp' ${ICTHOME}/config/ict.properties`
-		cat <<EOF > /lib/systemd/system/ict_report-ixi.service
-[Unit]
-Description=Ict Report IXI
-Requires=ict.service
-After=ict.service
+	systemctl daemon-reload
 
-[Service]
-ExecStartPre=/bin/sh -c "while [ \$(netstat -nlpu | grep -c "^udp.*:$port") -eq 0 ] ; do sleep 1 ; done; sleep 10"
-ExecStart=/usr/bin/java -jar ${ICTHOME}/${ICTDIR}/Report.ixi/report.ixi${REPORT_IXI_VERSION}.jar ${ICTHOME}/config/report.ixi.cfg
-WorkingDirectory=${ICTHOME}/${ICTDIR}
-StandardOutput=inherit
-StandardError=inherit
-Restart=always
-User=ict
-[Install]
-WantedBy=multi-user.target
-EOF
-		chmod u+x /lib/systemd/system/ict_report-ixi.service
-		for ixi in $(ls /lib/systemd/system/ict_* | rev | cut -f1 -d"/" | rev) ; do systemctl stop ${ixi} ; done
-		cat <<EOF > /lib/systemd/system/ict_chat-ixi.service
-[Unit]
-Description=Ict Chat IXI
-Requires=ict.service
-After=ict.service
-
-[Service]
-EnvironmentFile=${ICTHOME}/config/chat.ixi.cfg
-ExecStartPre=/bin/sh -c "while [ \$(netstat -nlpu | grep -c "^udp.*:$port") -eq 0 ] ; do sleep 1 ; done; sleep 10"
-ExecStart=/usr/bin/java -jar ${ICTHOME}/${ICTDIR}/chat.ixi/chat.ixi${CHAT_IXI_VERSION}.jar ${ICTNAME} "\$username" "\$password"
-WorkingDirectory=${ICTHOME}/${ICTDIR}
-StandardOutput=inherit
-StandardError=inherit
-Restart=always
-User=ict
-[Install]
-WantedBy=multi-user.target
-EOF
-		chmod u+x /lib/systemd/system/ict_chat-ixi.service
-		echo "### ict_chat-ixi.service installed, but not started. Username: ${CHATUSER} Password:${RANDOMPASS}"
-		if [ "$1" = "EXPERIMENTAL" ]; then
-			cat <<EOF > /lib/systemd/system/ict_zeromq-ixi.service
-[Unit]
-Description=Ict ZeroMQ IXI
-Requires=ict.service
-After=ict.service
-
-[Service]
-EnvironmentFile=${ICTHOME}/config/zeromq.ixi.cfg
-ExecStartPre=/bin/sh -c "while [ \$(netstat -nlpu | grep -c "^udp.*:$port") -eq 0 ] ; do sleep 1 ; done; sleep 10"
-ExecStart=/usr/bin/java -jar ${ICTHOME}/${ICTDIR}/iota-ixi-zeromq/ixi-zeromq/target/ixi-zeromq-jar-with-dependencies.jar \${ICTNAME} \${ZMQPORT}
-WorkingDirectory=${ICTHOME}/${ICTDIR}
-StandardOutput=inherit
-StandardError=inherit
-Restart=always
-User=ict
-[Install]
-WantedBy=multi-user.target
-EOF
-			chmod u+x /lib/systemd/system/ict_zeromq-ixi.service
-			echo "### ict_zeromq-ixi.service installed, but not started. "
-		fi
-		systemctl daemon-reload
-		systemctl enable ict_report-ixi
-		systemctl stop ict_report-ixi.service
-		sleep 1
-		systemctl start ict_report-ixi 
-		echo "### ict_report-ixi.service installed, added to boot, and restarted"
-
-	fi
 	journalctl -f _UID=$(id -u ict)
 	
 elif [ -f /sbin/openrc-run ] ; then
@@ -485,135 +441,16 @@ EOF
 	
 	/etc/init.d/ict restart
 	echo "### ict daemon installed, added to boot, and restarted"
+
+	for ixi in $(ls /etc/init.d/ict_* | rev | cut -f1 -d"/" | rev) ; do 
+		echo "### Removing old ${ixi} service"
+		/etc/init.d/${ixi} stop
+		rc-update del ${ixi}
+		rm -f /etc/init.d/${ixi}
+	done
 	
-	if [ /bin/true ]; then
-		port=`sed -ne 's/^port\s*=\s*//gp' ${ICTHOME}/config/ict.properties`
-		cat <<EOF > /etc/init.d/ict_report-ixi
-#!/sbin/openrc-run
+	tail -f /var/log/ict.log
 
-name="ict report daemon"
-description="IOTA ict node report ixi"
-command="/usr/bin/java"
-command_args="-jar ${ICTHOME}/${ICTDIR}/Report.ixi/report.ixi${REPORT_IXI_VERSION}.jar ${ICTHOME}/config/report.ixi.cfg"
-pidfile=/var/run/ict_report-ixi.pid
-
-depend() {
-  need net ict
-  use logger dns
-}
-
-start() {
-  ebegin "Starting ICT Report.ixi"
-  while [ \$(netstat -nlpu | grep -c "^udp.*:$port") -eq 0 ] ; do 
-	sleep 1
-  done
-  sleep 10
-  start-stop-daemon --start -u ict -d ${ICTHOME}/${ICTDIR} \\
-    -1 /var/log/ict_report-ixi.log \\
-    --exec \${command} \\
-    -b -m --pidfile \${pidfile} \\
-    -- \${command_args}
-  eend \$?
-}
-
-stop() {
-  ebegin "Stopping ICT Report.ixi"
-  start-stop-daemon --stop -u ict --pidfile \${pidfile}
-  eend \$?
-}
-EOF
-		chmod u+x /etc/init.d/ict_report-ixi
-		touch /var/log/ict_report-ixi.log && chown ict /var/log/ict_report-ixi.log
-		for ixi in /etc/init.d/ict_* ; do $ixi stop ; done
-		cat <<EOF > /etc/init.d/ict_chat-ixi
-#!/sbin/openrc-run
-
-name="ict chat daemon"
-description="IOTA ict node chat ixi"
-command="/usr/bin/java"
-command_args="-jar /home/ict/omega-ict/chat.ixi/chat.ixi-1.1.jar"
-pidfile=/var/run/ict_chat-ixi.pid
-
-depend() {
-  need net ict
-  use logger dns
-}
-
-start() {
-  ebegin "Starting ICT Chat.ixi."
-  while [ \$(netstat -nlpu | grep -c "^udp.*:$port") -eq 0 ] ; do 
-	sleep 1
-  done
-  sleep 10
-  source ${ICTHOME}/config/chat.ixi.cfg
-  start-stop-daemon --start -u ict -d ${ICTHOME}/${ICTDIR} \
-    -1 /var/log/ict_chat-ixi.log \
-    -b -m --pidfile \${pidfile} \
-    --exec \${command} \
-    -- \${command_args} "${ICTNAME}" "\${username}" "\${password}"
-
-  eend \$?
-}
-
-stop() {
-  ebegin "Stopping ICT Chat.ixi"
-  start-stop-daemon --stop -u ict --pidfile \${pidfile}
-  eend \$?
-}
-EOF
-		chmod u+x /etc/init.d/ict_chat-ixi
-		touch /var/log/ict_chat-ixi.log && chown ict /var/log/ict_chat-ixi.log
-		echo "### ict_chat-ixi daemon installed, but not started. Username: ${CHATUSER} Password:${RANDOMPASS}"
-		if [ "$1" = "EXPERIMENTAL" ]; then
-			/usr/bin/java -jar ${ICTHOME}/${ICTDIR}/iota-ixi-zeromq/ixi-zeromq/target/ixi-zeromq-jar-with-dependencies.jar ${ICTNAME} ${ZMQPORT}
-			cat <<EOF > /etc/init.d/ict_zeromq-ixi
-#!/sbin/openrc-run
-
-name="ict zeromq daemon"
-description="IOTA ict node zeromq ixi"
-command="/usr/bin/java"
-command_args="-jar ${ICTHOME}/${ICTDIR}/iota-ixi-zeromq/ixi-zeromq/target/ixi-zeromq-jar-with-dependencies.jar"
-pidfile=/var/run/ict_zeromq-ixi.pid
-
-depend() {
-  need net ict
-  use logger dns
-}
-
-start() {
-  ebegin "Starting ICT ZeroMQ.ixi."
-  while [ \$(netstat -nlpu | grep -c "^udp.*:$port") -eq 0 ] ; do 
-	sleep 1
-  done
-  sleep 10
-  source ${ICTHOME}/config/zeromq.ixi.cfg
-  start-stop-daemon --start -u ict -d ${ICTHOME}/${ICTDIR} \
-    -1 /var/log/ict_zeromq-ixi.log \
-    -b -m --pidfile \${pidfile} \
-    --exec \${command} \
-    -- \${command_args} \${ICTNAME} \${ZMQPORT}
-
-  eend \$?
-}
-
-stop() {
-  ebegin "Stopping ICT ZeroMQ.ixi"
-  start-stop-daemon --stop -u ict --pidfile \${pidfile}
-  eend \$?
-}
-EOF
-			chmod u+x /etc/init.d/ict_zeromq-ixi
-			touch /var/log/ict_zeromq-ixi.log && chown ict /var/log/ict_zeromq-ixi.log
-			echo "### ict_zeromq-ixi daemon installed, but not started."
-		fi
-
-		rc-update add ict_report-ixi
-		/etc/init.d/ict_report-ixi stop
-		sleep 1
-		/etc/init.d/ict_report-ixi start
-		echo "### ict_report-ixi daemon installed, added to boot, and restarted"
-	fi
-	tail -f /var/log/ict.log /var/log/ict_report-ixi.log
 else
 	echo "### NOT INSTALLED AS SERVICE. STARTING IN FORGROUND."
 	cd ${ICTHOME}/${ICTDIR}
