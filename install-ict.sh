@@ -20,7 +20,7 @@ echo "### Setting package manager to ${PKGMANAGER}"
 
 ${PKGMANAGER} update -y
 ${PKGMANAGER} upgrade -y
-${PKGMANAGER} -u curl wget unzip nodejs 2>/dev/null || ${PKGMANAGER} install -y curl wget unzip nodejs
+${PKGMANAGER} -u curl wget unzip 2>/dev/null || ${PKGMANAGER} install -y curl wget unzip 
 
 echo "### Setting time, preparing user and directories"
 date --set="$(curl -v --insecure --silent https://google.com/ 2>&1 | grep -i "^< date" | sed -e 's/^< date: //i')"
@@ -43,7 +43,7 @@ if [ "$1" = "BUILD" -o "$1" = "EXPERIMENTAL" ]; then
 			apt-get upgrade -y
 			echo debconf shared/accepted-oracle-license-v1-1 select true | debconf-set-selections
 			echo debconf shared/accepted-oracle-license-v1-1 seen true | debconf-set-selections
-			apt-get install oracle-java8-installer oracle-java8-set-default -y --allow-unauthenticated
+			apt-get install oracle-java8-installer oracle-java8-set-default nodejs npm -y --allow-unauthenticated
 		fi
 		if [ "$1" = "EXPERIMENTAL" ]; then
 			${PKGMANAGER} install -y --fix-missing maven libzmq3-dev pkg-config
@@ -52,7 +52,7 @@ if [ "$1" = "BUILD" -o "$1" = "EXPERIMENTAL" ]; then
 		fi
 		;;
 	* )
-		${PKGMANAGER} -u git net-tools maven npm 2>/dev/null || ${PKGMANAGER} install -y git net-tools
+		${PKGMANAGER} -u git net-tools maven nodejs npm 2>/dev/null || ${PKGMANAGER} install -y git net-tools nodejs npm
 		version=$(javac -version 2>&1)
 		if [ "$version" != "javac 1.8.0_192" ] ; then 
 			cd /tmp
@@ -89,6 +89,8 @@ if [ "$1" = "BUILD" -o "$1" = "EXPERIMENTAL" ]; then
 	#echo "org.gradle.java.home=/usr/java/jdk1.8.0_192-amd64" > gradle.properties
 	gradle fatJar || exit "BUILD did not work. Try ./$0 RELEASE [NODENAME]"
 	VERSION=`ls *.jar | sed -e 's/ict\(.*\)\.jar/\1/'`
+	echo "### Installing Node.js modules required by ICT"
+	cd ${ICTHOME}/${ICTDIR}/ict/web && npm install
 	echo "### Done building ICT$VERSION"
 	
 	echo "### Pulling and building Report.ixi source"
@@ -220,8 +222,7 @@ if [ "$1" = "RELEASE" ]; then
 			mkdir chat.ixi
 			cd chat.ixi
 			rm -f *.jar *.zip
-			wget -c https://github.com/iotaledger/chat.ixi/releases/download/${CHAT_IXI_VERSION}/chat.ixi-${CHAT_IXI_VERSION}.zip
-			unzip -o chat.ixi-${CHAT_IXI_VERSION}.zip
+			wget -c https://github.com/iotaledger/chat.ixi/releases/download/${CHAT_IXI_VERSION}/chat.ixi-${CHAT_IXI_VERSION}.jar
 	fi
 	CHAT_IXI_VERSION="-${CHAT_IXI_VERSION}"
 	echo "### Done downloading Chat.ixi$CHAT_IXI_VERSION"
@@ -234,6 +235,7 @@ mkdir -p ${ICTHOME}/config
 echo "### Creating default ict.cfg template"
 cd ${ICTHOME}/${ICTDIR}
 rm -f ict.cfg
+rm -rf web
 java -jar ${ICTHOME}/${ICTDIR}/ict/ict${VERSION}.jar --config-create &
 last_pid=$!
 while [ ! -f ict.cfg ] ; do sleep 1 ; done
@@ -256,9 +258,6 @@ else
 		cp -f ict.cfg ${ICTHOME}/config/ict.cfg
 	done
 fi
-echo "### Installing Node.js modules required by ICT"
-cd ${ICTHOME}/${ICTDIR}/web
-npm install
 
 if [ /bin/true ]; then
 	echo "### Adapting run script and configs for IXIs"
