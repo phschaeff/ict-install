@@ -32,7 +32,7 @@ if [ "$1" = "BUILD" -o "$1" = "EXPERIMENTAL" ]; then
 	echo "### Installing dependencies for BUILD" 
 	case "$PKGMANAGER" in
 	*apt-get* )
-		${PKGMANAGER} install -y --fix-missing git gnupg dirmngr gradle net-tools
+		${PKGMANAGER} install -y --fix-missing git gnupg dirmngr gradle net-tools nodejs npm
 		version=$(javac -version 2>&1)
 		if [ "$version" != "javac 1.8.0_191" ] ; then 
 			grep "^deb .*webupd8team" /etc/apt/sources.list || echo "deb http://ppa.launchpad.net/webupd8team/java/ubuntu trusty main" >> /etc/apt/sources.list
@@ -43,7 +43,7 @@ if [ "$1" = "BUILD" -o "$1" = "EXPERIMENTAL" ]; then
 			apt-get upgrade -y
 			echo debconf shared/accepted-oracle-license-v1-1 select true | debconf-set-selections
 			echo debconf shared/accepted-oracle-license-v1-1 seen true | debconf-set-selections
-			apt-get install oracle-java8-installer oracle-java8-set-default nodejs npm -y --allow-unauthenticated
+			apt-get install oracle-java8-installer oracle-java8-set-default -y --allow-unauthenticated
 		fi
 		if [ "$1" = "EXPERIMENTAL" ]; then
 			${PKGMANAGER} install -y --fix-missing maven libzmq3-dev pkg-config
