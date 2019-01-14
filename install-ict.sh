@@ -128,8 +128,7 @@ if [ "$1" = "BUILD" -o "$1" = "EXPERIMENTAL" ]; then
 	cd ${ICTHOME}/${ICTDIR}/chat.ixi
 	rm -f *.jar
 	#echo "org.gradle.java.home=/usr/java/jdk1.8.0_192-amd64" > gradle.properties
-	gradle Jar
-	mv build/libs/*.jar .
+	gradle ixi
 	CHAT_IXI_VERSION=`ls *.jar | sed -e 's/chat.ixi\(.*\)\.jar/\1/'`
 	echo "### Done building Chat.ixi$CHAT_IXI_VERSION"
 	
