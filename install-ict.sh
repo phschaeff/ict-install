@@ -199,32 +199,28 @@ if [ "$1" = "RELEASE" ]; then
 	fi
 	cd ${ICTHOME}/${ICTDIR}
 	VERSION=`curl --silent "https://api.github.com/repos/${GITREPO}/releases" | grep '"tag_name":' |head -1 | sed -E 's/.*"([^"]+)".*/\1/'`
-	if [ ! -f ict/ict-${VERSION}.jar ]; then
-			mkdir ict
-			cd ict
-			rm -f *.jar
-			wget -c https://github.com/iotaledger/ict/releases/download/${VERSION}/ict-${VERSION}.jar
-	fi
+	mkdir ict
+	cd ict
+	rm -f *.jar
+	wget -c https://github.com/iotaledger/ict/releases/download/${VERSION}/ict-${VERSION}.jar
 	VERSION="-${VERSION}"
 	echo "### Done downloading ICT$VERSION"
+	
 	cd ${ICTHOME}/${ICTDIR}
 	REPORT_IXI_VERSION=`curl --silent "https://api.github.com/repos/trifel/Report.ixi/releases" | grep '"tag_name":' |head -1 | sed -E 's/.*"([^"]+)".*/\1/'`
-	if [ ! -f Report.ixi/report.ixi-${REPORT_IXI_VERSION}.jar ]; then
-			mkdir Report.ixi
-			cd Report.ixi
-			rm -f *.jar *.zip
-			wget -c https://github.com/trifel/Report.ixi/releases/download/${REPORT_IXI_VERSION}/report.ixi-${REPORT_IXI_VERSION}.jar
-	fi
+	mkdir Report.ixi
+	cd Report.ixi
+	rm -f *.jar *.zip
+	wget -c https://github.com/trifel/Report.ixi/releases/download/${REPORT_IXI_VERSION}/report.ixi-${REPORT_IXI_VERSION}.jar
 	REPORT_IXI_VERSION="-${REPORT_IXI_VERSION}"
 	echo "### Done downloading Report.ixi$REPORT_IXI_VERSION"
+	
 	cd ${ICTHOME}/${ICTDIR}
 	CHAT_IXI_VERSION=`curl --silent "https://api.github.com/repos/iotaledger/chat.ixi/releases" | grep '"tag_name":' |head -1 | sed -E 's/.*"([^"]+)".*/\1/'`
-	if [ ! -f chat.ixi/chat.ixi-${CHAT_IXI_VERSION}.jar ]; then
-			mkdir chat.ixi
-			cd chat.ixi
-			rm -f *.jar *.zip
-			wget -c https://github.com/iotaledger/chat.ixi/releases/download/${CHAT_IXI_VERSION}/chat.ixi-${CHAT_IXI_VERSION}.jar
-	fi
+	mkdir chat.ixi
+	cd chat.ixi
+	rm -f *.jar *.zip
+	wget -c https://github.com/iotaledger/chat.ixi/releases/download/${CHAT_IXI_VERSION}/chat.ixi-${CHAT_IXI_VERSION}.jar
 	CHAT_IXI_VERSION="-${CHAT_IXI_VERSION}"
 	echo "### Done downloading Chat.ixi$CHAT_IXI_VERSION"
 fi
@@ -353,6 +349,7 @@ EOF
 		if [ ! -f ${ICTHOME}/${ICTDIR}/modules/zeromq.ixi/zeromq.ixi.cfg ] ; then
 			mkdir -p ${ICTHOME}/${ICTDIR}/modules/zeromq.ixi
 			echo "ZMQPORT=5560" > ${ICTHOME}/${ICTDIR}/modules/zeromq.ixi/zeromq.ixi.cfg
+			rm -f ${ICTHOME}/config/zeromq.ixi.cfg
 			ln -s ${ICTHOME}/${ICTDIR}/modules/zeromq.ixi/zeromq.ixi.cfg ${ICTHOME}/config/
 		fi
 		rm -f ${ICTHOME}/${ICTDIR}/modules/ixi-zeromq*jar
