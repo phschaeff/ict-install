@@ -128,7 +128,8 @@ if [ "$1" = "BUILD" -o "$1" = "EXPERIMENTAL" ]; then
 	cd ${ICTHOME}/${ICTDIR}/chat.ixi
 	rm -f *.jar
 	#echo "org.gradle.java.home=/usr/java/jdk1.8.0_192-amd64" > gradle.properties
-	gradle fatJar
+	gradle Jar
+	mv build/libs/*.jar .
 	CHAT_IXI_VERSION=`ls *.jar | sed -e 's/chat.ixi\(.*\)\.jar/\1/'`
 	echo "### Done building Chat.ixi$CHAT_IXI_VERSION"
 	
@@ -235,12 +236,12 @@ mkdir -p ${ICTHOME}/config
 echo "### Creating default ict.cfg template"
 cd ${ICTHOME}/${ICTDIR}
 rm -f ict.cfg
-rm -rf web
 java -jar ${ICTHOME}/${ICTDIR}/ict/ict${VERSION}.jar --config-create &
 last_pid=$!
 while [ ! -f ict.cfg ] ; do sleep 1 ; done
 sleep 1
 kill -KILL $last_pid 2>/dev/null 1>/dev/null
+rm -rf web
 
 if [ ! -f ${ICTHOME}/config/ict.cfg ]; then
 	if [ -f ${ICTHOME}/config/ict.properties ]; then
@@ -321,6 +322,7 @@ EOF
 
 	mkdir -p ${ICTHOME}/${ICTDIR}/modules/report.ixi
 	cp -f report.ixi.cfg ${ICTHOME}/${ICTDIR}/modules/report.ixi/report.ixi.cfg
+	rm -f ${ICTHOME}/config/report.ixi.cfg
 	ln -s ${ICTHOME}/${ICTDIR}/modules/report.ixi/report.ixi.cfg ${ICTHOME}/config/
 #	sed -i "s/^ixi_enabled=.*$/ixi_enabled=true/" ict.cfg
 	rm -f ${ICTHOME}/${ICTDIR}/modules/report.ixi*jar
@@ -330,20 +332,21 @@ EOF
 		CHATUSER=`sed -ne "s/^username=\(.*\)$/\1/gp" ${ICTHOME}/config/chat.ixi.cfg`
 		RANDOMPASS=`sed -ne "s/^password=\(.*\)$/\1/gp" ${ICTHOME}/config/chat.ixi.cfg`
 		rm -f ${ICTHOME}/config/chat.ixi.cfg
-	elif [ -f ${ICTHOME}/${ICTDIR}/modules/chat.ixi/chat.ixi.cfg ] ; then
-		CHATUSER=`sed -ne "s/^username=\(.*\)$/\1/gp" ${ICTHOME}/${ICTDIR}/modules/chat.ixi/chat.ixi.cfg`
-		RANDOMPASS=`sed -ne "s/^password=\(.*\)$/\1/gp" ${ICTHOME}/${ICTDIR}/modules/chat.ixi/chat.ixi.cfg`	
+	elif [ -f ${ICTHOME}/${ICTDIR}/modules/chat-config/chat.cfg ] ; then
+		CHATUSER=`sed -ne "s/^username=\(.*\)$/\1/gp" ${ICTHOME}/${ICTDIR}/modules/chat-config/chat.cfg`
+		RANDOMPASS=`sed -ne "s/^password=\(.*\)$/\1/gp" ${ICTHOME}/${ICTDIR}/modules/chat-config/chat.cfg`
 	else 
-		mkdir -p ${ICTHOME}/${ICTDIR}/modules/chat.ixi
+		mkdir -p ${ICTHOME}/${ICTDIR}/modules/chat-config
 		CHATUSER=`sed -ne "s/^name=\(.*\) .*$/\1/p" report.ixi.cfg`
 		RANDOMPASS=`< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c12`
 		#read -e -p "Enter a password for Chat.ixi API:" -i "${CHATUSER}" CHATUSER
 		#read -e -p "Enter a password for Chat.ixi API:" -i "${RANDOMPASS}" RANDOMPASS
-		echo "username=$CHATUSER" > ${ICTHOME}/${ICTDIR}/modules/chat.ixi/chat.ixi.cfg
-		echo "password=$RANDOMPASS" >> ${ICTHOME}/${ICTDIR}/modules/chat.ixi/chat.ixi.cfg
-		ln -s ${ICTHOME}/${ICTDIR}/modules/chat.ixi/chat.ixi.cfg ${ICTHOME}/config/
+		echo "username=$CHATUSER" > ${ICTHOME}/${ICTDIR}/modules/chat-config/chat.cfg
+		echo "password=$RANDOMPASS" >> ${ICTHOME}/${ICTDIR}/modules/chat-config/chat.cfg
+		rm -f ${ICTHOME}/config/chat.ixi.cfg
+		ln -s ${ICTHOME}/${ICTDIR}/modules/chat-config/chat.cfg ${ICTHOME}/config/
 	fi
-	rm -rf ${ICTHOME}/${ICTDIR}/modules/chat.ixi*jar
+	rm -rf ${ICTHOME}/${ICTDIR}/modules/chat.ixi*
 	cp -f ${ICTHOME}/${ICTDIR}/chat.ixi/chat.ixi${CHAT_IXI_VERSION}.jar ${ICTHOME}/${ICTDIR}/modules/chat.ixi${CHAT_IXI_VERSION}.jar
 	
 	if [ "$1" = "EXPERIMENTAL" ]; then
@@ -387,10 +390,10 @@ EOF
 	systemctl restart ict
 
 	for ixi in $(ls /lib/systemd/system/ict_* | rev | cut -f1 -d"/" | rev) ; do 
-		echo "### Removing old ${ixi} service"
+		echo "### Removing old ${ixi}"
 		systemctl stop ${ixi}
 		systemctl disable
-		rm -f /lib/systemd/system/ict_${ixi}
+		rm -f /lib/systemd/system/${ixi}
 	done
 
 	systemctl daemon-reload
