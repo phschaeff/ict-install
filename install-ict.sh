@@ -17,10 +17,67 @@ fi
 
 PKGMANAGER=$( command -v apt-get || command -v yum || command -v dnf || command -v emerge || command -v pkg ) || exit "Cannot find the appropriate package manager"
 echo "### Setting package manager to ${PKGMANAGER}"
+case "$PKGMANAGER" in
+*apt-get* )
+	${PKGMANAGER} update -y
+	${PKGMANAGER} upgrade -y
+	${PKGMANAGER} install -y curl wget unzip 
+	
+	JAVA_PATH=$(which java)
+	JAVAC_PATH=$(which javac)
+	if [ -z "${JAVA_PATH}" -o -z "${JAVAC_PATH}" ] ; then
+		echo "### Installing default-jdk-headless"
+		sed -i "/^deb .*webupd8team.*$/d;/^deb-src .*webupd8team.*$/d" /etc/apt/sources.list
+		rm -f /etc/profile.d/jdk.*
+		apt-get install default-jdk-headless -y --allow-unauthenticated
+		update-alternatives --auto java 
+		update-alternatives --auto javac
+	fi
+	JAVA_PATH=$(which java)
+	JAVAC_PATH=$(which javac)
+	if [ -z "${JAVA_PATH}" -o -z "${JAVAC_PATH}" ] ; then 
+		echo "### Installing java-11"
+		sed -i "/^deb .*webupd8team.*$/d;/^deb-src .*webupd8team.*$/d" /etc/apt/sources.list
+		echo "deb http://ppa.launchpad.net/linuxuprising/java/ubuntu bionic main" | tee /etc/apt/sources.list.d/linuxuprising-java.list
+		apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 73C3DB2A
+		apt-get update
+		apt --fix-broken install
+		echo oracle-java11-installer shared/accepted-oracle-license-v1-2 select true | /usr/bin/debconf-set-selections
+		echo oracle-java11-installer shared/accepted-oracle-licence-v1-2 boolean true | /usr/bin/debconf-set-selections
+		apt-get install oracle-java11-installer oracle-java11-set-default -y --allow-unauthenticated
+	fi
+	
+	if [ "$1" = "EXPERIMENTAL" ]; then
+		${PKGMANAGER} install -y --fix-missing maven libzmq3-dev pkg-config
+		curl https://sh.rustup.rs -sSf | sh -s -- -y 
+		source ~/.cargo/env || export PATH="/root/.cargo/bin:$PATH"
+	fi
+	JAVA_HOME=$(update-alternatives --get-selections | sed -ne "s/^java[[:space:]]\+[a-z]\+[[:space:]]\+\(.*\)\/bin\/java$/\1/p")
 
-${PKGMANAGER} update -y
-${PKGMANAGER} upgrade -y
-${PKGMANAGER} -u curl wget unzip 2>/dev/null || ${PKGMANAGER} install -y curl wget unzip 
+	;;
+* )
+	if [ "$PKGMANAGER" = "/usr/bin/emerge" ]; then
+		${PKGMANAGER} --sync
+		${PKGMANAGER} -u curl wget unzip	
+	else
+		${PKGMANAGER} update -y
+		${PKGMANAGER} upgrade -y
+		${PKGMANAGER} install -y curl wget unzip	
+	fi
+	JAVA_PATH=$(which java)
+	JAVAC_PATH=$(which javac)
+	if [ -z "${JAVA_PATH}" -o -z "${JAVAC_PATH}" ] ; then
+		cd /tmp
+		wget https://raw.githubusercontent.com/phschaeff/ict-install/master/install_java.sh -O -  | sh
+	fi
+	JAVA_HOME=$(update-alternatives --list | sed -ne "s/^java[[:space:]]\+[a-z]\+[[:space:]]\+\(.*\)\/bin\/java$/\1/p")
+	if [ "$1" = "EXPERIMENTAL" ]; then
+		exit "### Currently not supported"
+	fi
+
+	;;
+esac
+echo "### JAVA_HOME set to ${JAVA_HOME}"
 
 echo "### Setting time, preparing user and directories"
 date --set="$(curl -v --insecure --silent https://google.com/ 2>&1 | grep -i "^< date" | sed -e 's/^< date: //i')"
@@ -32,19 +89,8 @@ if [ "$1" = "BUILD" -o "$1" = "EXPERIMENTAL" ]; then
 	echo "### Installing dependencies for BUILD" 
 	case "$PKGMANAGER" in
 	*apt-get* )
-		${PKGMANAGER} install -y --fix-missing git gnupg dirmngr gradle net-tools nodejs npm
-		version=$(javac -version 2>&1)
-		if [ "$version" != "javac 1.8.0_191" ] ; then 
-			grep "^deb .*webupd8team" /etc/apt/sources.list || echo "deb http://ppa.launchpad.net/webupd8team/java/ubuntu trusty main" >> /etc/apt/sources.list
-			grep "^deb-src .*webupd8team" /etc/apt/sources.list || echo "deb-src http://ppa.launchpad.net/webupd8team/java/ubuntu precise main" >> /etc/apt/sources.list
-			apt-key adv --keyserver keyserver.ubuntu.com --recv-keys C2518248EEA14886
-			apt-key adv --keyserver keyserver.ubuntu.com --recv-keys EEA14886
-			apt-get update
-			apt-get upgrade -y
-			echo debconf shared/accepted-oracle-license-v1-1 select true | debconf-set-selections
-			echo debconf shared/accepted-oracle-license-v1-1 seen true | debconf-set-selections
-			apt-get install oracle-java8-installer oracle-java8-set-default -y --allow-unauthenticated
-		fi
+		${PKGMANAGER} install -y --fix-missing git gnupg dirmngr net-tools nodejs npm
+		${PKGMANAGER} remove gradle -y
 		if [ "$1" = "EXPERIMENTAL" ]; then
 			${PKGMANAGER} install -y --fix-missing maven libzmq3-dev pkg-config
 			curl https://sh.rustup.rs -sSf | sh -s -- -y 
@@ -53,24 +99,25 @@ if [ "$1" = "BUILD" -o "$1" = "EXPERIMENTAL" ]; then
 		;;
 	* )
 		${PKGMANAGER} -u git net-tools maven nodejs npm 2>/dev/null || ${PKGMANAGER} install -y git net-tools nodejs npm
-		version=$(javac -version 2>&1)
-		if [ "$version" != "javac 1.8.0_192" ] ; then 
-			cd /tmp
-			wget https://raw.githubusercontent.com/metalcated/scripts/master/install_java.sh -O -  | sed -e 's/^JAVA_TYPE="jre"/JAVA_TYPE="jdk"/' | sh
-		fi
-		gradle_version=2.10
-		if [ ! -d /opt/gradle-${gradle_version} ] ; then
-			wget -c http://services.gradle.org/distributions/gradle-${gradle_version}-all.zip
-			unzip -o gradle-${gradle_version}-all.zip -d /opt
-			ln -s /opt/gradle-${gradle_version} /opt/gradle
-			printf "export GRADLE_HOME=/opt/gradle\nexport PATH=\$PATH:\$GRADLE_HOME/bin\n" > /etc/profile.d/gradle.sh
-		fi
-		source /etc/profile.d/gradle.sh
+		${PKGMANAGER} purge gradle -y
 		if [ "$1" = "EXPERIMENTAL" ]; then
 			exit "### Currently not supported"
 		fi
 		;;
 	esac
+
+	gradle_version=4.10
+	echo "### Installing gradle version ${gradle_version}"
+	if [ ! -d /opt/gradle-${gradle_version} ] ; then
+		cd /tmp
+		wget -c http://services.gradle.org/distributions/gradle-${gradle_version}-all.zip
+		unzip -o gradle-${gradle_version}-all.zip -d /opt
+		printf "export GRADLE_HOME=/opt/gradle\nexport PATH=\$PATH:\$GRADLE_HOME/bin\n" > /etc/profile.d/gradle.sh
+	fi
+	rm -f /opt/gradle
+	ln -f -s /opt/gradle-${gradle_version} /opt/gradle
+	export GRADLE_HOME=/opt/gradle
+	source /etc/profile.d/gradle.sh
 	
 	echo "### Pulling and building ICT source"
 	if [ -d ${ICTHOME}/${ICTDIR}/ict/.git ]; then
@@ -86,11 +133,11 @@ if [ "$1" = "BUILD" -o "$1" = "EXPERIMENTAL" ]; then
 	fi
 	cd ${ICTHOME}/${ICTDIR}/ict
 	rm -f *.jar
-	#echo "org.gradle.java.home=/usr/java/jdk1.8.0_192-amd64" > gradle.properties
-	gradle fatJar || exit "BUILD did not work. Try ./$0 RELEASE [NODENAME]"
+	/opt/gradle/bin/gradle fatJar || exit "BUILD did not work. Try ./$0 RELEASE [NODENAME]"
 	VERSION=`ls *.jar | sed -e 's/ict\(.*\)\.jar/\1/'`
 	echo "### Installing Node.js modules required by ICT"
-	cd ${ICTHOME}/${ICTDIR}/ict/web && npm install
+	cd ${ICTHOME}/${ICTDIR}/ict/web
+	npm install
 	echo "### Done building ICT$VERSION"
 	
 	echo "### Pulling and building Report.ixi source"
@@ -107,8 +154,7 @@ if [ "$1" = "BUILD" -o "$1" = "EXPERIMENTAL" ]; then
 	fi
 	cd ${ICTHOME}/${ICTDIR}/Report.ixi
 	rm -f *.jar
-	#echo "org.gradle.java.home=/usr/java/jdk1.8.0_192-amd64" > gradle.properties
-	gradle fatJar
+	/opt/gradle/bin/gradle fatJar
 	REPORT_IXI_VERSION=`ls *.jar | sed -e 's/report.ixi\(.*\)\.jar/\1/'`
 	echo "### Done building Report.ixi$REPORT_IXI_VERSION"
 	
@@ -127,8 +173,7 @@ if [ "$1" = "BUILD" -o "$1" = "EXPERIMENTAL" ]; then
 	fi
 	cd ${ICTHOME}/${ICTDIR}/chat.ixi
 	rm -f *.jar
-	#echo "org.gradle.java.home=/usr/java/jdk1.8.0_192-amd64" > gradle.properties
-	gradle ixi
+	/opt/gradle/bin/gradle ixi
 	CHAT_IXI_VERSION=`ls *.jar | sed -e 's/chat.ixi\(.*\)\.jar/\1/'`
 	echo "### Done building Chat.ixi$CHAT_IXI_VERSION"
 	
@@ -172,30 +217,6 @@ if [ "$1" = "BUILD" -o "$1" = "EXPERIMENTAL" ]; then
 fi
 
 if [ "$1" = "RELEASE" ]; then
-	echo "### Installing dependencies for RELEASE"
-	version=$(javac -version 2>&1)
-	if [ "$version" != "javac 1.8.0_191" ] ; then
-		case "$PKGMANAGER" in
-		*apt-get* )
-			grep "^deb .*webupd8team" /etc/apt/sources.list || echo "deb http://ppa.launchpad.net/webupd8team/java/ubuntu trusty main" >> /etc/apt/sources.list
-			grep "^deb-src .*webupd8team" /etc/apt/sources.list || echo "deb-src http://ppa.launchpad.net/webupd8team/java/ubuntu precise main" >> /etc/apt/sources.list
-			apt-key adv --keyserver keyserver.ubuntu.com --recv-keys C2518248EEA14886
-			apt-key adv --keyserver keyserver.ubuntu.com --recv-keys EEA14886
-			apt-get update
-			apt-get upgrade -y
-			echo debconf shared/accepted-oracle-license-v1-1 select true | debconf-set-selections
-			echo debconf shared/accepted-oracle-license-v1-1 seen true | debconf-set-selections
-			apt-get install oracle-java8-installer oracle-java8-set-default -y --allow-unauthenticated
-			;;
-		*emerge* )
-			emerge -u virtual/jre
-			;;
-		* )
-			cd /tmp
-			wget https://raw.githubusercontent.com/metalcated/scripts/master/install_java.sh -O -  | sed -e 's/^JAVA_TYPE="jre"/JAVA_TYPE="jdk"/' | sh
-			;;
-		esac
-	fi
 	cd ${ICTHOME}/${ICTDIR}
 	VERSION=`curl --silent "https://api.github.com/repos/${GITREPO}/releases" | grep '"tag_name":' |head -1 | sed -E 's/.*"([^"]+)".*/\1/'`
 	mkdir ict
@@ -326,10 +347,10 @@ EOF
 	if [ -f ${ICTHOME}/config/chat.ixi.cfg -a ! -h ${ICTHOME}/config/chat.ixi.cfg ] ; then
 		CHATUSER=`sed -ne "s/^username=\(.*\)$/\1/gp" ${ICTHOME}/config/chat.ixi.cfg`
 		RANDOMPASS=`sed -ne "s/^password=\(.*\)$/\1/gp" ${ICTHOME}/config/chat.ixi.cfg`
-		rm -f ${ICTHOME}/config/chat.ixi.cfg
 	elif [ -f ${ICTHOME}/${ICTDIR}/modules/chat-config/chat.cfg ] ; then
 		CHATUSER=`sed -ne "s/^username=\(.*\)$/\1/gp" ${ICTHOME}/${ICTDIR}/modules/chat-config/chat.cfg`
 		RANDOMPASS=`sed -ne "s/^password=\(.*\)$/\1/gp" ${ICTHOME}/${ICTDIR}/modules/chat-config/chat.cfg`
+		ln -s ${ICTHOME}/${ICTDIR}/modules/chat-config/chat.cfg ${ICTHOME}/config/
 	else 
 		mkdir -p ${ICTHOME}/${ICTDIR}/modules/chat-config
 		CHATUSER=`sed -ne "s/^name=\(.*\) .*$/\1/p" report.ixi.cfg`
@@ -338,9 +359,9 @@ EOF
 		#read -e -p "Enter a password for Chat.ixi API:" -i "${RANDOMPASS}" RANDOMPASS
 		echo "username=$CHATUSER" > ${ICTHOME}/${ICTDIR}/modules/chat-config/chat.cfg
 		echo "password=$RANDOMPASS" >> ${ICTHOME}/${ICTDIR}/modules/chat-config/chat.cfg
-		rm -f ${ICTHOME}/config/chat.ixi.cfg
 		ln -s ${ICTHOME}/${ICTDIR}/modules/chat-config/chat.cfg ${ICTHOME}/config/
 	fi
+	rm -f ${ICTHOME}/config/chat.ixi.cfg
 	rm -rf ${ICTHOME}/${ICTDIR}/modules/chat.ixi*
 	cp -f ${ICTHOME}/${ICTDIR}/chat.ixi/chat.ixi${CHAT_IXI_VERSION}.jar ${ICTHOME}/${ICTDIR}/modules/chat.ixi${CHAT_IXI_VERSION}.jar
 	
@@ -361,6 +382,10 @@ cd ${ICTHOME}/${ICTDIR}
 cp -f ${ICTHOME}/config/ict.cfg ${ICTHOME}/config/ict.cfg.last
 cp -f ict.cfg ${ICTHOME}/config/ict.cfg 
 chown -R ict ${ICTHOME}/config ${ICTHOME}/${ICTDIR}
+
+echo "### Deleting old directories and temporary files"
+cd ${ICTHOME}/${ICTDIR}
+rm -rf *ctx* *.key *.cfg logs ixi channels.txt contacts.txt ${ICTHOME}/config/*.properties ${ICTHOME}/config/*.key ${ICTHOME}/config/*.txt
 
 echo "### Configuring system services"
 if [ $(systemctl is-active --quiet systemd-sysctl.service 2>/dev/null; echo $?) -eq 0 ] ; then
@@ -394,7 +419,7 @@ EOF
 
 	systemctl daemon-reload
 
-	journalctl -f _UID=$(id -u ict)
+	journalctl -fu ict
 	
 elif [ -f /sbin/openrc-run ] ; then
 	echo "### openrc"
