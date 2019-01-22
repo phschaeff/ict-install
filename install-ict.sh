@@ -218,6 +218,7 @@ if [ "$1" = "BUILD" -o "$1" = "EXPERIMENTAL" ]; then
 		cd ${ICTHOME}/${ICTDIR}/ictmon/ 
 		cargo build --release && echo "### Done building ictmon.ixi"
 	fi
+	ICTOPTIONS="--debug"
 fi
 
 if [ "$1" = "RELEASE" ]; then
@@ -285,7 +286,7 @@ if [ /bin/true ]; then
 	cat <<EOF > ${ICTHOME}/run-ict.sh
 #!/bin/sh
 cd ${ICTHOME}/${ICTDIR}
-java -jar ${ICTHOME}/${ICTDIR}/ict/ict${VERSION}.jar -c ${ICTHOME}/config/ict.cfg &
+java -jar ${ICTHOME}/${ICTDIR}/ict/ict${VERSION}.jar -c ${ICTHOME}/config/ict.cfg ${ICTOPTIONS} &
 ict_pid=\$!
 echo \$ict_pid > ict.pid
 EOF
@@ -399,7 +400,7 @@ if [ $(systemctl is-active --quiet systemd-sysctl.service 2>/dev/null; echo $?) 
 	Description=IOTA ICT
 	After=network.target
 	[Service]
-	ExecStart=/usr/bin/java -jar ${ICTHOME}/${ICTDIR}/ict/ict${VERSION}.jar -c ${ICTHOME}/config/ict.cfg
+	ExecStart=/usr/bin/java -jar ${ICTHOME}/${ICTDIR}/ict/ict${VERSION}.jar -c ${ICTHOME}/config/ict.cfg ${ICTOPTIONS}
 	WorkingDirectory=${ICTHOME}/${ICTDIR}
 	StandardOutput=inherit
 	StandardError=inherit
@@ -433,7 +434,7 @@ elif [ -f /sbin/openrc-run ] ; then
 name="ict daemon"
 description="IOTA ict node"
 command="/usr/bin/java"
-command_args="-jar ${ICTHOME}/${ICTDIR}/ict/ict${VERSION}.jar -c ${ICTHOME}/config/ict.cfg"
+command_args="-jar ${ICTHOME}/${ICTDIR}/ict/ict${VERSION}.jar -c ${ICTHOME}/config/ict.cfg ${ICTOPTIONS}"
 pidfile=/var/run/ict.pid
 
 depend() {

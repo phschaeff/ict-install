@@ -1,5 +1,6 @@
 2019-01-22:
-  - adapted to pull the most recent dev snapshot in BUILD 
+  - adapted to pull the most recent dev snapshot in BUILD
+  - added "--debug" to ICT in BUILD
 
 2019-01-14:
 - Adapted to ict 0.4
