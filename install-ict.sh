@@ -122,8 +122,8 @@ if [ "$1" = "BUILD" -o "$1" = "EXPERIMENTAL" ]; then
 	echo "### Pulling and building ICT source"
 	if [ -d ${ICTHOME}/${ICTDIR}/ict/.git ]; then
 		cd ${ICTHOME}/${ICTDIR}/ict
-		git pull
-		git branch dev
+		git pull origin dev
+		git reset --hard origin/dev
 	else
 		cd ${ICTHOME}/${ICTDIR}
 		rm -rf ict
@@ -143,14 +143,16 @@ if [ "$1" = "BUILD" -o "$1" = "EXPERIMENTAL" ]; then
 	echo "### Pulling and building Report.ixi source"
 	if [ -d ${ICTHOME}/${ICTDIR}/Report.ixi/.git ]; then
 		cd ${ICTHOME}/${ICTDIR}/Report.ixi
-		git pull
-		git branch dev
+		git pull origin dev
+		git reset --hard origin/dev
 	else
 		cd ${ICTHOME}/${ICTDIR}
 		rm -rf ${ICTHOME}/${ICTDIR}/Report.ixi
 		git clone https://github.com/trifel/Report.ixi
 		cd Report.ixi
 		git branch dev
+		git pull origin dev
+		git reset --hard origin/dev		
 	fi
 	cd ${ICTHOME}/${ICTDIR}/Report.ixi
 	rm -f *.jar
@@ -162,14 +164,16 @@ if [ "$1" = "BUILD" -o "$1" = "EXPERIMENTAL" ]; then
 	cd ${ICTHOME}/${ICTDIR}
 	if [ -d ${ICTHOME}/${ICTDIR}/chat.ixi/.git ]; then
 		cd ${ICTHOME}/${ICTDIR}/chat.ixi
-		git pull
-		git branch dev
+		git pull origin dev
+		git reset --hard origin/dev
 	else
 		cd ${ICTHOME}/${ICTDIR}
 		rm -rf ${ICTHOME}/${ICTDIR}/chat.ixi
 		git clone https://github.com/iotaledger/chat.ixi
 		cd chat.ixi
 		git branch dev
+		git pull origin dev
+		git reset --hard origin/dev
 	fi
 	cd ${ICTHOME}/${ICTDIR}/chat.ixi
 	rm -f *.jar

@@ -1,3 +1,6 @@
+2019-01-22:
+  - adapted to pull the most recent dev snapshot in BUILD 
+
 2019-01-14:
 - Adapted to ict 0.4
   - installs report.ixi and chat.ixi in the new modules folder
